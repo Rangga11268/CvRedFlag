@@ -129,21 +129,39 @@ export default function Home() {
   const [forceSinglePage, setForceSinglePage] = useState<boolean>(false);
   const [canvasHeight, setCanvasHeight] = useState<number>(1123);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+
+  // Generate object URL for PDF file preview if available
+  useEffect(() => {
+    if (pdfFile && pdfFile.size > 0) {
+      const url = URL.createObjectURL(pdfFile);
+      setPdfUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPdfUrl(null);
+    }
+  }, [pdfFile]);
+
+  const [activePage, setActivePage] = useState<number>(1);
+
+  const handlePageChange = (targetPage: number) => {
+    if (targetPage < 1 || targetPage > pageCount) return;
+    setActivePage(targetPage);
+  };
 
   // Measure natural scrollHeight of A4 cv preview and set height to fit pages
   useEffect(() => {
-    if (currentStep === 0 || activeTab !== "preview" || !pdfPreviewRef.current) return;
+    if (currentStep === 0 || activeTab !== "preview") return;
 
     const timer = setTimeout(() => {
-      const el = pdfPreviewRef.current;
+      const el = measureRef.current;
       if (!el) return;
       
-      const prevHeight = el.style.height;
-      el.style.height = "auto";
-      const naturalHeight = el.scrollHeight;
-      el.style.height = prevHeight;
+      const innerHeight = el.scrollHeight;
       
-      const pages = Math.max(1, Math.ceil(naturalHeight / 1123));
+      // A4 height 1123px minus typical vertical padding (~100px) leaves ~1023px printable height
+      const pageContentThreshold = 1000;
+      const pages = Math.max(1, Math.ceil(innerHeight / pageContentThreshold));
       const targetHeight = forceSinglePage ? 1123 : pages * 1123;
       if (canvasHeight !== targetHeight) {
         setCanvasHeight(targetHeight);
@@ -156,6 +174,7 @@ export default function Home() {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const pdfPreviewRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
   const previewWrapperRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState(1);
 
@@ -593,12 +612,14 @@ ${bodyHtml}
         font-size:${h1FontSize};font-weight:700;
         text-align:center;text-transform:uppercase;
         letter-spacing:2px;margin-bottom:1mm;
+        break-after:avoid;page-break-after:avoid;
       }
       /* Subtitle line (job title) — first <p> after h1 */
       h1 + p{
         text-align:center;font-size:10pt;
         font-weight:700;text-transform:uppercase;
         letter-spacing:1px;margin-bottom:1mm;
+        break-inside:avoid;page-break-inside:avoid;
       }
       h2{
         font-family:${h1Font};
@@ -606,22 +627,57 @@ ${bodyHtml}
         text-transform:uppercase;letter-spacing:1.5px;
         border-bottom:1.5px solid #111;
         padding-bottom:0.8mm;margin-top:${spacingTop};margin-bottom:2mm;
+        break-after:avoid;page-break-after:avoid;
       }
       h3{
         font-family:${bodyFont};
         font-size:${h3FontSize};font-weight:700;
         margin-top:2.5mm;margin-bottom:0.5mm;
+        break-after:avoid;page-break-after:avoid;
       }
-      p{margin-bottom:1mm;font-size:${bodyFontSize};}
-      ul{padding-left:4mm;margin-bottom:1.5mm}
-      li{margin-bottom:0.8mm;font-size:${liFontSize};}
+      p{margin-bottom:1mm;font-size:${bodyFontSize};break-inside:avoid;page-break-inside:avoid;}
+      ul{padding-left:4mm;margin-bottom:1.5mm;break-inside:avoid;page-break-inside:avoid;}
+      li{margin-bottom:0.8mm;font-size:${liFontSize};break-inside:avoid;page-break-inside:avoid;}
       strong{font-weight:700}
       em{font-style:italic}
-      hr{border:none;border-top:0.5px solid #aaa;margin:2mm 0}
+      hr{border:none;border-top:0.5px solid #aaa;margin:2mm 0;break-inside:avoid;}
       a{color:#111;text-decoration:underline}
       @page{margin:${pageMargin};size:A4}
       @media print{body{padding:0}}
     `;
+  };
+
+  const formatRawTextToMarkdown = (text: string): string => {
+    if (!text) return "";
+    const lines = text.split("\n");
+    const sectionKeywords = [
+      "experience", "work", "employment", "education", "skills", "projects", 
+      "summary", "objective", "certifications", "languages", "achievements", "interests"
+    ];
+    
+    let formattedLines = lines.map((line, idx) => {
+      const trimmed = line.trim();
+      if (!trimmed) return "";
+      
+      const isFirstLine = idx === lines.findIndex(l => l.trim().length > 0);
+      if (isFirstLine && trimmed.length < 50) {
+        return `# ${trimmed}`;
+      }
+      
+      const isCapitalized = trimmed === trimmed.toUpperCase() && trimmed.length > 3;
+      const matchesKeyword = sectionKeywords.some(kw => trimmed.toLowerCase().includes(kw));
+      if (trimmed.length < 40 && (isCapitalized || (matchesKeyword && trimmed.length < 25))) {
+        return `\n## ${trimmed}`;
+      }
+      
+      if (trimmed.startsWith("•") || trimmed.startsWith("-") || trimmed.startsWith("*")) {
+        return `* ${trimmed.replace(/^[•\-\*]\s*/, "")}`;
+      }
+      
+      return line;
+    });
+    
+    return formattedLines.join("\n");
   };
 
   const renderCV = (md: string): string => {
@@ -684,6 +740,25 @@ ${bodyHtml}
       ? "Good"
       : "Needs Work"
     : "";
+
+  const getPaddingValues = (temp: "serif" | "sans" | "compact", force1Page: boolean) => {
+    let topMm = 14;
+    let horizMm = 18;
+    if (force1Page) {
+      topMm = 8;
+      horizMm = 10;
+    } else if (temp === "compact") {
+      topMm = 10;
+      horizMm = 12;
+    }
+    const topPx = Math.round(topMm * 3.78);
+    const horizPx = Math.round(horizMm * 3.78);
+    return { topPx, horizPx };
+  };
+
+  const { topPx, horizPx } = getPaddingValues(selectedTemplate, forceSinglePage);
+  const pageCount = forceSinglePage ? 1 : Math.max(1, Math.ceil(canvasHeight / 1123));
+  const isMultiPage = pageCount > 1 && !forceSinglePage && currentStep > 0;
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-base)] flex flex-col selection:bg-indigo-500/10 selection:text-indigo-900" style={{ color: 'var(--text-primary)', fontFamily: "var(--font-inter,'Inter',system-ui,sans-serif)" }}>
@@ -1418,64 +1493,154 @@ ${bodyHtml}
                         Formatted preview — switch to Raw Editor to make changes.
                       </div>
                     )}
+                    {isMultiPage && (
+                      <div className="no-print p-2.5 border-b text-[11px] flex items-center justify-between gap-2 font-medium bg-amber-50/50 border-amber-200/50 text-amber-800">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-2 w-2 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                          </span>
+                          <span>CV Anda melebihi 1 halaman A4. Gunakan navigasi halaman di bawah untuk melihat Halaman {activePage === 1 ? '2' : '1'}.</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handlePageChange(activePage === 1 ? 2 : 1)}
+                            className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-[10px] px-2 py-0.5 rounded transition-colors"
+                          >
+                            Lihat Halaman {activePage === 1 ? '2' : '1'} →
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Scaler wrapper — measured by ResizeObserver */}
-                    <div
-                      ref={previewWrapperRef}
-                      className="w-full overflow-hidden bg-slate-100 flex justify-center py-4 relative"
-                      style={{ height: `${(currentStep > 0 ? (forceSinglePage ? 1123 : canvasHeight) : 1123) * previewScale + 32}px` }}
-                    >
+                    <div className="w-full relative">
                       <div
-                        style={{
-                          width: "794px",
-                          height: currentStep > 0 ? (forceSinglePage ? "1123px" : `${canvasHeight}px`) : "1123px",
-                          transform: `scale(${previewScale})`,
-                          transformOrigin: "top center",
-                          position: "absolute",
-                          top: "16px",
-                        }}
+                        ref={previewWrapperRef}
+                        className="w-full overflow-hidden bg-slate-100 py-4 px-6 flex justify-center items-start relative"
+                        style={{ height: `${1123 * previewScale + 32}px` }}
                       >
-                        {currentStep > 0 && cvText ? (
-                          <>
-                            <div
-                              ref={pdfPreviewRef}
-                              className="pdf-canvas shadow-lg bg-white w-full h-full relative"
-                              dangerouslySetInnerHTML={{ __html: renderCV(currentStep === 3 ? editableCV : cvText) }}
-                              style={{
-                                fontFamily: selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif",
-                                fontSize: forceSinglePage ? "9pt" : "10pt",
-                                lineHeight: forceSinglePage ? 1.2 : (selectedTemplate === "compact" ? 1.25 : 1.4),
-                                padding: forceSinglePage ? "8mm 10mm" : (selectedTemplate === "compact" ? "10mm 12mm" : "14mm 18mm"),
-                                color: "#111",
-                              }}
-                            />
-                            {/* Visual page break dividers when multi-page */}
-                            {!forceSinglePage && canvasHeight > 1123 && 
-                              Array.from({ length: Math.floor(canvasHeight / 1123) - 1 }).map((_, idx) => (
+                        <div
+                          style={{
+                            width: "794px",
+                            height: "1123px",
+                            transformOrigin: "top center",
+                            position: "absolute",
+                            top: "16px",
+                            left: "50%",
+                            transform: `translateX(-50%) scale(${previewScale})`,
+                            overflow: "hidden",
+                          }}
+                        >
+                          {currentStep > 0 && cvText ? (
+                            <>
+                              {/* Sliding track containing separate page sheets and the columned text layer */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  width: `${pageCount * 794}px`,
+                                  height: "1123px",
+                                  transform: `translateX(-${(activePage - 1) * 794}px)`,
+                                  transition: "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+                                  position: "relative",
+                                }}
+                              >
+                                {/* Render page backgrounds */}
+                                {Array.from({ length: pageCount }).map((_, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="bg-white shadow-lg border border-slate-200"
+                                    style={{
+                                      width: "794px",
+                                      height: "1123px",
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                ))}
+
+                                {/* Column-flow text overlay */}
                                 <div
-                                  key={idx}
-                                  className="absolute left-0 right-0 pointer-events-none z-10 flex items-center justify-center border-t-2 border-dashed border-indigo-200"
+                                  ref={pdfPreviewRef}
+                                  className="pdf-canvas"
                                   style={{
-                                    top: `${(idx + 1) * 1123}px`,
-                                    height: "0px",
+                                    position: "absolute",
+                                    top: 0,
+                                    left: 0,
+                                    width: `${pageCount * 794}px`,
+                                    height: "1123px",
+                                    fontFamily: selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif",
+                                    fontSize: forceSinglePage ? "9pt" : "10pt",
+                                    lineHeight: forceSinglePage ? 1.2 : (selectedTemplate === "compact" ? 1.25 : 1.4),
+                                    paddingTop: `${topPx}px`,
+                                    paddingBottom: `${topPx}px`,
+                                    paddingLeft: `${horizPx}px`,
+                                    paddingRight: `${horizPx}px`,
+                                    color: "#111",
+                                    columnWidth: isMultiPage ? `${794 - 2 * horizPx}px` : "auto",
+                                    columnGap: isMultiPage ? `${2 * horizPx}px` : "0px",
+                                    columnFill: "auto",
+                                    background: "transparent",
+                                    border: "none",
+                                    boxShadow: "none",
+                                    borderRadius: 0,
                                   }}
-                                >
-                                  <span className="bg-indigo-600 text-white text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-sm select-none transform -translate-y-1/2 flex items-center gap-1" style={{ fontFamily: 'var(--font-jakarta)' }}>
-                                    Page {idx + 1} | Page {idx + 2}
-                                  </span>
-                                </div>
-                              ))
-                            }
-                          </>
-                        ) : (
-                          <div
-                            className="pdf-canvas shadow-lg bg-white w-full h-full overflow-auto p-6 flex flex-col items-center justify-center text-center text-slate-400"
-                          >
-                            <FileText weight="thin" className="w-16 h-16 mb-2" />
-                            <p className="text-xs font-semibold">Silakan unggah CV untuk melihat pratinjau</p>
-                          </div>
-                        )}
+                                  dangerouslySetInnerHTML={{ __html: renderCV(currentStep === 3 ? editableCV : formatRawTextToMarkdown(cvText)) }}
+                                />
+                              </div>
+
+                              {/* Hidden offscreen measurement element to compute layout height correctly */}
+                              <div
+                                ref={measureRef}
+                                style={{
+                                  position: "absolute",
+                                  visibility: "hidden",
+                                  pointerEvents: "none",
+                                  width: "794px",
+                                  fontFamily: selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif",
+                                  fontSize: forceSinglePage ? "9pt" : "10pt",
+                                  lineHeight: forceSinglePage ? 1.2 : (selectedTemplate === "compact" ? 1.25 : 1.4),
+                                  paddingTop: `${topPx}px`,
+                                  paddingBottom: `${topPx}px`,
+                                  paddingLeft: `${horizPx}px`,
+                                  paddingRight: `${horizPx}px`,
+                                  boxSizing: "border-box",
+                                }}
+                                dangerouslySetInnerHTML={{ __html: renderCV(currentStep === 3 ? editableCV : formatRawTextToMarkdown(cvText)) }}
+                              />
+                            </>
+                          ) : (
+                            <div
+                              className="pdf-canvas shadow-lg bg-white w-full h-full overflow-auto p-6 flex flex-col items-center justify-center text-center text-slate-400"
+                            >
+                              <FileText weight="thin" className="w-16 h-16 mb-2" />
+                              <p className="text-xs font-semibold">Silakan unggah CV untuk melihat pratinjau</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Floating Page Navigator Controls */}
+                      {isMultiPage && (
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 bg-white/90 backdrop-blur-md border border-slate-200 px-3 py-1.5 rounded-full shadow-lg flex items-center gap-3 select-none">
+                          <button
+                            disabled={activePage === 1}
+                            onClick={() => handlePageChange(activePage - 1)}
+                            className="w-6 h-6 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors text-xs font-bold text-slate-700"
+                          >
+                            ←
+                          </button>
+                          <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider" style={{ fontFamily: 'var(--font-jakarta)' }}>
+                            Halaman {activePage} / {pageCount}
+                          </span>
+                          <button
+                            disabled={activePage === pageCount}
+                            onClick={() => handlePageChange(activePage + 1)}
+                            className="w-6 h-6 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors text-xs font-bold text-slate-700"
+                          >
+                            →
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
