@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+:root {
+  --bg-base:      #f8fafc;   /* clean slate base background     */
+  --bg-surface:   #ffffff;   /* pure white card/surface         */
+  --bg-card:      #ffffff;   /* card level                      */
+  --bg-elevated:  #f1f5f9;   /* hover / elevated gray           */
+
+  --border:       #e2e8f0;   /* clean borders                   */
+  --border-accent:#cbd5e1;
+
+  --text-primary: #0f172a;   /* dark slate primary text         */
+  --text-secondary:#475569;  /* medium slate secondary text     */
+  --text-muted:   #94a3b8;   /* gray muted text                 */
+
+  --accent:       #4f46e5;   /* deep indigo-violet              */
+  --accent-hover: #3730a3;
+  --accent-glow:  rgba(79, 70, 229, 0.08);
+  --gold:         #d97706;   /* warm amber                      */
+  --gold-glow:    rgba(217, 119, 6, 0.08);
+  --success:      #059669;   /* emerald green                   */
+  --danger:       #dc2626;   /* crimson red                     */
+  --danger-glow:  rgba(220, 38, 38, 0.08);
+}
+
+/* ── Base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background:
+    radial-gradient(ellipse 80% 50% at 10% 0%,  rgba(99, 102, 241, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 100%, rgba(217, 119, 6, 0.02)  0%, transparent 60%),
+    var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Typography ─────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6,
+.font-display {
+  font-family: var(--font-jakarta), 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+code, pre, kbd, .font-mono {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+}
+
+/* ── Cursor — every interactive element ──────────────── */
+button, [role="button"], label[for], label[htmlFor],
+select, summary, a, input[type="file"], input[type="submit"] {
+  cursor: pointer !important;
+}
+
+button:disabled, input:disabled, textarea:disabled, [disabled] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* ── Focus ring ─────────────────────────────────────── */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgba(124, 107, 245, 0.55);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ── Transitions ────────────────────────────────────── */
+button, input, textarea, select, label {
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+button:not(:disabled):active { transform: scale(0.97); }
+
+textarea { resize: vertical; }
+
+/* ── Premium Card ───────────────────────────────────── */
+.premium-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.premium-card:hover {
+  border-color: var(--border-accent);
+  box-shadow: 0 0 0 1px var(--accent-glow), 0 8px 32px rgba(0,0,0,0.25);
+  transform: translateY(-1px);
+}
+
+/* ── Glass card variant ─────────────────────────────── */
+.glass-card {
+  background: rgba(23, 28, 52, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+
+/* ── Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(124,107,245,0.25);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(124,107,245,0.5); }
+
+/* ── Gradient text utility ──────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-text-gold {
+  background: linear-gradient(135deg, var(--gold) 0%, #fbbf24 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── A4 / PDF Canvas ─────────────────────────────────── */
+.pdf-canvas {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 14mm 18mm;
+  margin: 0 auto;
+  background: #ffffff;
+  color: #111;
+  font-family: 'Calibri', 'Georgia', serif;
+  font-size: 10pt;
+  line-height: 1.4;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+}
+
+.pdf-canvas h1 {
+  font-size: 16pt; font-weight: 700;
+  text-align: center; text-transform: uppercase;
+  letter-spacing: 2px; margin-bottom: 1mm; color: #000;
+}
+.pdf-canvas h2 {
+  font-size: 9.5pt; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  border-bottom: 1.5px solid #111;
+  padding-bottom: 0.8mm; margin-top: 4.5mm; margin-bottom: 2mm; color: #000;
+}
+.pdf-canvas h3 {
+  font-size: 10pt; font-weight: 700;
+  margin-top: 2.5mm; margin-bottom: 0.5mm; color: #111;
+}
+.pdf-canvas p  { margin-bottom: 1mm; font-size: 10pt; }
+.pdf-canvas ul { padding-left: 4mm; margin-bottom: 1.5mm; }
+.pdf-canvas li { margin-bottom: 0.8mm; font-size: 9.5pt; list-style: disc; }
+.pdf-canvas strong { font-weight: 700; }
+.pdf-canvas em { font-style: italic; }
+.pdf-canvas hr { border: none; border-top: 0.5px solid #aaa; margin: 2mm 0; }
+.pdf-canvas a { color: #111; }
+
+/* ── Print ──────────────────────────────────────────── */
+@media print {
+  body { background: white !important; color: black !important; }
+  .no-print { display: none !important; }
+  .pdf-canvas {
+    box-shadow: none !important; padding: 0 !important;
+    margin: 0 !important; width: 100% !important;
+    height: 100% !important; border: none !important;
+  }
+}
