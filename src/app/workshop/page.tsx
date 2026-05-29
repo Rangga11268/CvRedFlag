@@ -120,6 +120,10 @@ export default function Home() {
   const [editableCV, setEditableCV] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"preview" | "raw" | "diff" | "coverletter">("preview");
   const [coverLetter, setCoverLetter] = useState<string>("");
+  const [coverLetterLang, setCoverLetterLang] = useState<"id" | "en">("id");
+  const [coverLetterFormat, setCoverLetterFormat] = useState<"cover_letter" | "body_email_1" | "body_email_2">("cover_letter");
+  const [jobCategory, setJobCategory] = useState<"software_engineer" | "general">("general");
+  const [cvLanguage, setCvLanguage] = useState<"auto" | "id" | "en" | "bilingual">("auto");
   const [loadingCoverLetter, setLoadingCoverLetter] = useState<boolean>(false);
   const [scoreHistory, setScoreHistory] = useState<number[]>([]);
   const [selectedKeyword, setSelectedKeyword] = useState<string | null>(null);
@@ -287,7 +291,7 @@ export default function Home() {
     else if (stepNum === 3) setLoadingMsg("Sculpting ATS optimized structure...");
 
     try {
-      const payload: any = { step: stepNum, cvText: textToAnalyze, jobDescription };
+      const payload: any = { step: stepNum, cvText: textToAnalyze, jobDescription, jobCategory, cvLanguage };
       if (stepNum === 1 && customCvText) {
         payload.isReanalysis = true;
         payload.originalRedFlags = step1Result?.redFlags || [];
@@ -311,6 +315,11 @@ export default function Home() {
 
       if (stepNum === 1) {
         setStep1Result(data);
+        if (data.detectedJobCategory) {
+          setJobCategory(data.detectedJobCategory);
+          const categoryLabel = data.detectedJobCategory === "software_engineer" ? "Software Engineer / IT" : "Profesional Umum";
+          showToast(`Kategori Pekerjaan Terdeteksi: ${categoryLabel}`, "info");
+        }
         if (customCvText) {
           showToast(`Re-evaluation complete! New score: ${data.score}%`, "success");
           setScoreHistory((prev) => [...prev, data.score]);
@@ -394,7 +403,8 @@ export default function Home() {
         cvText: editableCV,
         jobDescription,
         missingKeywords: step1Result.missingKeywords,
-        redFlags: step1Result.redFlags
+        redFlags: step1Result.redFlags,
+        cvLanguage
       };
 
       const res2 = await fetch("/api/analyze", {
@@ -413,7 +423,9 @@ export default function Home() {
         step: 3,
         cvText: editableCV,
         jobDescription,
-        rewrittenExperience: newStep2Result
+        rewrittenExperience: newStep2Result,
+        jobCategory,
+        cvLanguage
       };
       const res3 = await fetch("/api/analyze", {
         method: "POST",
@@ -443,6 +455,9 @@ export default function Home() {
       if (res1.ok) {
         const data1 = await res1.json();
         setStep1Result(data1);
+        if (data1.detectedJobCategory) {
+          setJobCategory(data1.detectedJobCategory);
+        }
         setScoreHistory((prev) => [...prev, data1.score]);
         showToast(`Refinement complete! Score: ${data1.score}%`, "success");
       } else {
@@ -485,8 +500,10 @@ export default function Home() {
     }
   };
 
-  const handleGenerateCoverLetter = async () => {
+  const handleGenerateCoverLetter = async (lang?: "id" | "en", fmt?: "cover_letter" | "body_email_1" | "body_email_2") => {
     setLoadingCoverLetter(true);
+    const requestLang = lang || coverLetterLang;
+    const requestFmt = fmt || coverLetterFormat;
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -494,15 +511,18 @@ export default function Home() {
         body: JSON.stringify({
           step: 5,
           cvText: editableCV || cvText,
-          jobDescription
+          jobDescription,
+          language: requestLang,
+          format: requestFmt,
+          jobCategory
         })
       });
       if (!res.ok) throw new Error("Failed to generate cover letter");
       const data = await res.json();
       setCoverLetter(data.result);
-      showToast("Cover Letter generated successfully!", "success");
+      showToast(requestFmt.startsWith("body_email") ? "Body Email generated successfully!" : "Cover Letter generated successfully!", "success");
     } catch (e: any) {
-      showToast(e.message || "Failed to generate Cover Letter", "error");
+      showToast(e.message || "Failed to generate Cover Letter/Email", "error");
     } finally {
       setLoadingCoverLetter(false);
     }
@@ -870,7 +890,7 @@ ${bodyHtml}
       </header>
 
       {/* ── Main Content ────────────────────────────────────────── */}
-      <div className="flex-1 p-8 overflow-y-auto">
+      <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto w-full max-w-[1600px] mx-auto">
 
         {/* ── Progress Stepper ────────────────────────────────────── */}
         {currentStep >= 0 && (
@@ -1077,7 +1097,7 @@ ${bodyHtml}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6 items-start">
 
             {/* COL 1 — ATS Analyzer (left sidebar) */}
-            <div className="lg:col-span-4 xl:col-span-3 flex flex-col gap-4">
+            <div className="lg:col-span-4 xl:col-span-3 flex flex-col gap-4 min-w-0">
 
               {/* Match Score */}
               {step1Result && (
@@ -1312,42 +1332,94 @@ ${bodyHtml}
             </div>
 
             {/* COL 2 — CV Preview (center, takes priority on all screen sizes) */}
-            <div className="lg:col-span-8 xl:col-span-5 order-first lg:order-none flex flex-col gap-3">
+            <div className="lg:col-span-8 xl:col-span-5 order-first lg:order-none flex flex-col gap-3 min-w-0">
 
-              <div className="flex flex-col md:flex-row md:items-center justify-between rounded-xl p-1.5 gap-2" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                <div className="flex items-center gap-1">
-                  {(["preview", "raw", "diff", "coverletter"] as const).map((tab) => (
-                    <button key={tab} onClick={() => setActiveTab(tab)}
-                      className="px-4 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all"
-                      style={activeTab === tab
-                        ? { background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: 'var(--font-jakarta)' }
-                        : { color: 'var(--text-muted)', fontFamily: 'var(--font-jakarta)' }
-                      }
-                    >
-                      {tab === "preview" ? "A4 Preview" : tab === "raw" ? "Raw Editor" : tab === "diff" ? "Diff View" : "Cover Letter"}
-                    </button>
-                  ))}
-                </div>
-                {currentStep === 3 ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 bg-[var(--bg-base)] p-1 rounded-lg border" style={{ borderColor: 'var(--border)' }}>
-                      <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase px-1.5" style={{ fontFamily: 'var(--font-jakarta)' }}>Style:</span>
-                      {(["serif", "sans", "compact"] as const).map((temp) => (
-                        <button key={temp} onClick={() => setSelectedTemplate(temp)}
-                          className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded-md cursor-pointer transition-all ${selectedTemplate === temp ? "bg-white text-indigo-700 shadow-xs border" : "text-slate-500 hover:text-slate-700"}`}
-                          style={{ fontFamily: 'var(--font-jakarta)', borderColor: 'var(--border)' }}
-                        >
-                          {temp}
-                        </button>
-                      ))}
+              <div className="flex flex-col rounded-xl p-3 gap-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                {/* Row 1: Navigation Tabs & Score Badge */}
+                <div className="flex items-center justify-between gap-3 border-b pb-2.5" style={{ borderColor: 'var(--border)' }}>
+                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 flex-1">
+                    {(["preview", "raw", "diff", "coverletter"] as const).map((tab) => (
+                      <button key={tab} onClick={() => setActiveTab(tab)}
+                        className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all whitespace-nowrap ${
+                          activeTab === tab
+                            ? "bg-[var(--bg-elevated)] text-[var(--text-primary)] font-bold shadow-3xs"
+                            : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                        }`}
+                        style={{ fontFamily: 'var(--font-jakarta)' }}
+                      >
+                        {tab === "preview" ? "A4 Preview" : tab === "raw" ? "Raw Editor" : tab === "diff" ? "Diff View" : "Cover Letter"}
+                      </button>
+                    ))}
+                  </div>
+                  {step1Result && (
+                    <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[10px] font-bold shadow-3xs bg-indigo-50 border-indigo-100 text-indigo-700" style={{ fontFamily: 'var(--font-jakarta)' }}>
+                      <span>Score:</span>
+                      <span className="text-xs font-extrabold">{step1Result.score}%</span>
                     </div>
-                    <label className="flex items-center gap-1.5 text-[9px] font-bold uppercase cursor-pointer select-none text-slate-500 hover:text-slate-700 bg-[var(--bg-base)] px-2 py-1 rounded-lg border" style={{ borderColor: 'var(--border)', fontFamily: 'var(--font-jakarta)' }}>
-                      <input type="checkbox" checked={forceSinglePage} onChange={(e) => setForceSinglePage(e.target.checked)} className="cursor-pointer" />
-                      <span>Fit 1 Page</span>
-                    </label>
+                  )}
+                </div>
+
+                {/* Row 2: CV Configuration Controls */}
+                {currentStep > 0 ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Job Category Dropdown Select */}
+                    <div className="flex items-center gap-1.5 bg-[var(--bg-base)] px-2.5 py-1.5 rounded-lg border shadow-3xs animate-fade-in" style={{ borderColor: 'var(--border)' }}>
+                      <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Role:</span>
+                      <select
+                        value={jobCategory}
+                        onChange={(e) => setJobCategory(e.target.value as any)}
+                        className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer border-none p-0 focus:ring-0"
+                        style={{ fontFamily: 'var(--font-jakarta)' }}
+                      >
+                        <option value="general">Umum (Admin, Finance)</option>
+                        <option value="software_engineer">Developer (IT/Software)</option>
+                      </select>
+                    </div>
+
+                    {/* CV Language Dropdown Select */}
+                    <div className="flex items-center gap-1.5 bg-[var(--bg-base)] px-2.5 py-1.5 rounded-lg border shadow-3xs animate-fade-in" style={{ borderColor: 'var(--border)' }}>
+                      <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Bahasa CV:</span>
+                      <select
+                        value={cvLanguage}
+                        onChange={(e) => setCvLanguage(e.target.value as any)}
+                        className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer border-none p-0 focus:ring-0"
+                        style={{ fontFamily: 'var(--font-jakarta)' }}
+                      >
+                        <option value="auto">Bawaan (Auto)</option>
+                        <option value="id">Indonesia</option>
+                        <option value="en">English</option>
+                        <option value="bilingual">Bilingual (ID/EN)</option>
+                      </select>
+                    </div>
+
+                    {currentStep === 3 && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Font Style Buttons */}
+                        <div className="flex items-center gap-1 bg-[var(--bg-base)] p-1 rounded-lg border shadow-3xs" style={{ borderColor: 'var(--border)' }}>
+                          <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase px-1.5 shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Style:</span>
+                          {(["serif", "sans", "compact"] as const).map((temp) => (
+                            <button key={temp} onClick={() => setSelectedTemplate(temp)}
+                              className={`px-2.5 py-0.5 text-[9px] font-bold uppercase rounded-md cursor-pointer transition-all ${selectedTemplate === temp ? "bg-white text-indigo-700 shadow-3xs border border-slate-100" : "text-slate-500 hover:text-slate-700"}`}
+                              style={{ fontFamily: 'var(--font-jakarta)' }}
+                            >
+                              {temp}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Page Fit Mode */}
+                        <label className="flex items-center gap-1.5 text-[9px] font-bold uppercase cursor-pointer select-none text-slate-500 hover:text-slate-700 bg-[var(--bg-base)] px-2.5 py-1.5 rounded-lg border shadow-3xs" style={{ borderColor: 'var(--border)', fontFamily: 'var(--font-jakarta)' }}>
+                          <input type="checkbox" checked={forceSinglePage} onChange={(e) => setForceSinglePage(e.target.checked)} className="cursor-pointer" />
+                          <span>Fit 1 Page</span>
+                        </label>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <span className="text-[10px] font-bold uppercase tracking-wider pr-3 text-[var(--text-muted)]" style={{ fontFamily: 'var(--font-jakarta)' }}>Workspace</span>
+                  <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-semibold" style={{ fontFamily: 'var(--font-jakarta)' }}>
+                    <span>Workspace Pratinjau</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Belum Ada Analisis</span>
+                  </div>
                 )}
               </div>
 
@@ -1408,6 +1480,58 @@ ${bodyHtml}
                   </div>
                 ) : activeTab === "coverletter" ? (
                   <div className="w-full min-h-[600px] p-6 bg-slate-50 flex flex-col gap-4 relative">
+                    {/* Control Panel for Cover Letter & Email generation */}
+                    <div className="flex flex-col md:flex-row gap-3 p-4 bg-white rounded-2xl border border-[var(--border)] shadow-xs justify-between items-center z-10">
+                      <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                        {/* Format Selection */}
+                        <div className="flex flex-col gap-1 text-left">
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Pilih Format Dokumen</label>
+                          <select
+                            value={coverLetterFormat}
+                            onChange={(e) => setCoverLetterFormat(e.target.value as any)}
+                            className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold"
+                          >
+                            <option value="cover_letter">Cover Letter (Surat Lamaran)</option>
+                            <option value="body_email_1">Body Email (Formal & Lampiran)</option>
+                            <option value="body_email_2">Body Email (Tonjolkan Prestasi)</option>
+                          </select>
+                        </div>
+
+                        {/* Language Selection */}
+                        <div className="flex flex-col gap-1 text-left">
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Bahasa</label>
+                          <select
+                            value={coverLetterLang}
+                            onChange={(e) => setCoverLetterLang(e.target.value as any)}
+                            className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold"
+                          >
+                            <option value="id">Bahasa Indonesia</option>
+                            <option value="en">English</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Generate Button */}
+                      <button
+                        disabled={loadingCoverLetter || !cvText || !jobDescription}
+                        onClick={() => handleGenerateCoverLetter()}
+                        className="w-full md:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        style={{ fontFamily: 'var(--font-jakarta)' }}
+                      >
+                        {loadingCoverLetter ? (
+                          <>
+                            <ArrowClockwise weight="bold" className="w-3.5 h-3.5 animate-spin" />
+                            Memproses Dokumen...
+                          </>
+                        ) : (
+                          <>
+                            <MagicWand weight="bold" className="w-3.5 h-3.5" />
+                            {coverLetter ? "Regenerasi Dokumen" : "Buat Dokumen"}
+                          </>
+                        )}
+                      </button>
+                    </div>
+
                     <AnimatePresence>
                       {loadingCoverLetter && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -1415,41 +1539,45 @@ ${bodyHtml}
                           style={{ background: 'rgba(255,255,255,0.95)' }}
                         >
                           <ArrowClockwise weight="bold" className="w-7 h-7 animate-spin mb-4" style={{ color: 'var(--accent)' }} />
-                          <p className="font-bold text-base tracking-tight" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-jakarta)' }}>Drafting cover letter...</p>
+                          <p className="font-bold text-base tracking-tight" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-jakarta)' }}>Drafting document...</p>
                           <p className="text-[11px] mt-1.5 font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Writing tailored matches · Please wait</p>
                         </motion.div>
                       )}
                     </AnimatePresence>
+
                     {coverLetter ? (
                       <div className="flex flex-col gap-3 bg-[var(--bg-base)] rounded-2xl p-4 border border-[var(--border)] shadow-sm">
                         <div className="flex items-center justify-between pb-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700" style={{ fontFamily: 'var(--font-jakarta)' }}>AI Generated Cover Letter</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700" style={{ fontFamily: 'var(--font-jakarta)' }}>
+                            {coverLetterFormat.startsWith("body_email") ? "AI Generated Body Email" : "AI Generated Cover Letter"}
+                          </span>
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => {
                                 navigator.clipboard.writeText(coverLetter);
-                                showToast("Cover letter copied to clipboard!", "success");
+                                showToast(coverLetterFormat.startsWith("body_email") ? "Email copied to clipboard!" : "Cover letter copied to clipboard!", "success");
                               }}
                               className="px-3 py-1.5 text-[9px] font-bold uppercase bg-indigo-50 border border-indigo-150/40 text-indigo-700 hover:bg-indigo-100 rounded-lg cursor-pointer transition-all"
                               style={{ fontFamily: 'var(--font-jakarta)' }}
                             >
                               Copy to Clipboard
                             </button>
-                            <button
-                              onClick={handleDownloadCoverLetterPDF}
-                              className="px-3 py-1.5 text-[9px] font-bold uppercase bg-emerald-50 border border-emerald-150/40 text-emerald-700 hover:bg-emerald-100 rounded-lg cursor-pointer transition-all flex items-center gap-1"
-                              style={{ fontFamily: 'var(--font-jakarta)' }}
-                            >
-                              <FileArrowDown weight="bold" className="w-3.5 h-3.5" /> Download PDF
-                            </button>
+                            {!coverLetterFormat.startsWith("body_email") && (
+                              <button
+                                onClick={handleDownloadCoverLetterPDF}
+                                className="px-3 py-1.5 text-[9px] font-bold uppercase bg-emerald-50 border border-emerald-150/40 text-emerald-700 hover:bg-emerald-100 rounded-lg cursor-pointer transition-all flex items-center gap-1"
+                                style={{ fontFamily: 'var(--font-jakarta)' }}
+                              >
+                                <FileArrowDown weight="bold" className="w-3.5 h-3.5" /> Download PDF
+                              </button>
+                            )}
                           </div>
                         </div>
-                        <div className="w-full flex justify-center py-4 bg-slate-100 overflow-y-auto max-h-[500px] rounded-xl border">
+                        <div className="w-full flex justify-center py-4 bg-slate-100 overflow-x-auto max-h-[600px] rounded-xl border">
                           <div
-                            className="bg-white shadow-md p-8 text-slate-800 text-left"
+                            className="bg-white shadow-md p-6 sm:p-8 text-slate-800 text-left w-full max-w-[794px]"
                             style={{
-                              width: "794px",
-                              minHeight: "1123px",
+                              minHeight: coverLetterFormat.startsWith("body_email") ? "auto" : "1123px",
                               fontFamily: selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif",
                               fontSize: "10.5pt",
                               lineHeight: 1.5,
@@ -1460,32 +1588,14 @@ ${bodyHtml}
                         </div>
                       </div>
                     ) : (
-                      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-white rounded-2xl border border-[var(--border)] shadow-sm min-h-[500px]">
+                      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-white rounded-2xl border border-[var(--border)] shadow-sm min-h-[400px]">
                         <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mb-4 border border-indigo-100">
                           <MagicWand weight="bold" className="w-6 h-6" />
                         </div>
-                        <h4 className="text-sm font-bold text-slate-800 mb-1.5" style={{ fontFamily: 'var(--font-jakarta)' }}>Need a matching Cover Letter?</h4>
+                        <h4 className="text-sm font-bold text-slate-800 mb-1.5" style={{ fontFamily: 'var(--font-jakarta)' }}>Siapkan Cover Letter & Body Email Anda</h4>
                         <p className="text-xs text-slate-500 max-w-sm leading-relaxed mb-5">
-                          Draft an ATS-optimized cover letter specifically tailored to the target Job Description and highlighting your rewritten resume achievements.
+                          Pilih format bahasa dan tipe dokumen di atas, kemudian klik "Buat Dokumen" untuk menghasilkan draf yang disesuaikan secara dinamis dengan CV Anda dan Kriteria Pekerjaan.
                         </p>
-                        <button
-                          disabled={loadingCoverLetter || !cvText || !jobDescription}
-                          onClick={handleGenerateCoverLetter}
-                          className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 cursor-pointer shadow-md transition-all flex items-center gap-1.5"
-                          style={{ fontFamily: 'var(--font-jakarta)' }}
-                        >
-                          {loadingCoverLetter ? (
-                            <>
-                              <ArrowClockwise weight="bold" className="w-3.5 h-3.5 animate-spin" />
-                              Generating Cover Letter...
-                            </>
-                          ) : (
-                            <>
-                              <MagicWand weight="bold" className="w-3.5 h-3.5" />
-                              Generate Cover Letter
-                            </>
-                          )}
-                        </button>
                       </div>
                     )}
                   </div>
@@ -1498,22 +1608,20 @@ ${bodyHtml}
                       </div>
                     )}
                     {isMultiPage && (
-                      <div className="no-print p-2.5 border-b text-[11px] flex items-center justify-between gap-2 font-medium bg-amber-50/50 border-amber-200/50 text-amber-800">
+                      <div className="no-print p-3 border-b text-[11px] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 font-medium bg-amber-50/50 border-amber-200/50 text-amber-800">
                         <div className="flex items-center gap-2">
-                          <span className="flex h-2 w-2 relative">
+                          <span className="flex h-2 w-2 relative shrink-0">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                           </span>
-                          <span>CV Anda melebihi 1 halaman A4. Gunakan navigasi halaman di bawah untuk melihat Halaman {activePage === 1 ? '2' : '1'}.</span>
+                          <span className="leading-relaxed">CV Anda melebihi 1 halaman A4. Gunakan navigasi di bawah untuk melihat Halaman {activePage === 1 ? '2' : '1'}.</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => handlePageChange(activePage === 1 ? 2 : 1)}
-                            className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-[10px] px-2 py-0.5 rounded transition-colors"
-                          >
-                            Lihat Halaman {activePage === 1 ? '2' : '1'} →
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handlePageChange(activePage === 1 ? 2 : 1)}
+                          className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all self-start sm:self-auto shrink-0"
+                        >
+                          Lihat Halaman {activePage === 1 ? '2' : '1'} →
+                        </button>
                       </div>
                     )}
 
@@ -1652,7 +1760,7 @@ ${bodyHtml}
             </div>
 
             {/* COL 3 — AI Copilot (right sidebar) */}
-            <div className="lg:col-span-12 xl:col-span-4 flex flex-col gap-4">
+            <div className="lg:col-span-12 xl:col-span-4 flex flex-col gap-4 min-w-0">
 
               {/* AI Steps */}
               <div className="p-5 flex flex-col gap-4 rounded-2xl" style={{ background: 'var(--accent-glow)', border: '1px solid rgba(79,70,229,0.1)' }}>

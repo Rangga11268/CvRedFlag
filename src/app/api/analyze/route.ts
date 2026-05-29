@@ -15,7 +15,11 @@ export async function POST(req: NextRequest) {
       isReanalysis, 
       originalRedFlags, 
       originalKeywords,
-      keyword
+      keyword,
+      language,
+      format,
+      jobCategory,
+      cvLanguage
     } = await req.json();
 
     // Determine API Keys
@@ -37,6 +41,8 @@ export async function POST(req: NextRequest) {
         systemPrompt = "You are a senior ATS recruiter and analyst. Verify if the optimized CV has successfully resolved the previous red flags, integrated missing keywords, and improved its overall score based on the professional rubric. Respond ONLY in raw JSON — no markdown, no code blocks, no extra text.";
         userPrompt = `Analyze the optimized CV against the target Job Description and compare it with the original issues.
 
+Also determine the job category: return "software_engineer" if the CV content relates to software development, programming, coding, IT engineering, or includes developer links like GitHub/Portfolio. Otherwise, return "general".
+
 You must calculate the score (0-100) strictly based on this weighted rubric:
 1. Keyword Matching & Relevance (Max 40 points): Compare CV with Job Description. How well are key skills and tools integrated?
 2. Impact & Action Verbs (Max 25 points): Check for strong action verbs (Developed, Optimized, etc.) and quantified metrics (%, $, numbers, timeframes).
@@ -55,7 +61,8 @@ Return ONLY this JSON format:
   "missingKeywords": ["any keywords from the original list that are STILL missing from the optimized CV"],
   "redFlags": ["any red flags from the original list that are STILL present in the optimized CV"],
   "resolvedKeywords": ["keywords from the original list that are now successfully added/present in the optimized CV"],
-  "resolvedRedFlags": ["red flags from the original list that are now successfully resolved/removed in the optimized CV"]
+  "resolvedRedFlags": ["red flags from the original list that are now successfully resolved/removed in the optimized CV"],
+  "detectedJobCategory": "software_engineer" or "general"
 }
 
 Target Job Description:
@@ -74,6 +81,8 @@ ${JSON.stringify(originalKeywords)}`;
         userPrompt = `Act as a senior recruiter. Analyze the resume against the job description.
 Identify missing keywords (up to 5) and red flags (up to 3).
 
+Also determine the job category: return "software_engineer" if the CV content relates to software development, programming, coding, IT engineering, or includes developer links like GitHub/Portfolio. Otherwise, return "general".
+
 Calculate the score (0-100) strictly based on this weighted rubric:
 1. Keyword Matching & Relevance (Max 40 points): Check overlap of skills/tools between CV and Job Description.
 2. Impact & Action Verbs (Max 25 points): Look for action verbs combined with quantified metrics/results.
@@ -90,7 +99,8 @@ Return ONLY this JSON:
     "readability": <score 0-15>
   },
   "missingKeywords": ["up to 5 specific skills/tools missing from the CV"],
-  "redFlags": ["up to 3 red flags a hiring manager spots in under 10 seconds"]
+  "redFlags": ["up to 3 red flags a hiring manager spots in under 10 seconds"],
+  "detectedJobCategory": "software_engineer" or "general"
 }
 
 Job Description:
@@ -103,6 +113,18 @@ ${cvText}`;
 
     } else if (step === 2) {
       systemPrompt = "You are an expert ATS resume writer. You rewrite experience bullets using the Google XYZ formula: 'Accomplished [X] as measured by [Y], by doing [Z]'. Output clean Markdown only.";
+      
+      let langInstruction = "";
+      if (cvLanguage === "en") {
+        langInstruction = "- You MUST write all the rewritten experience bullets and headers in English. Translate them to English if the original CV is in Indonesian.";
+      } else if (cvLanguage === "id") {
+        langInstruction = "- You MUST write all the rewritten experience bullets and headers in Bahasa Indonesia. Translate them to Bahasa Indonesia if the original CV is in English.";
+      } else if (cvLanguage === "bilingual") {
+        langInstruction = "- You MUST write all the rewritten experience bullets and headers in Bilingual format (English / Bahasa Indonesia translation side-by-side or combined).";
+      } else {
+        langInstruction = "- Maintain the dominant language of the original CV (English or Bahasa Indonesia).";
+      }
+
       userPrompt = `Rewrite ONLY the Work Experience / Project section of this CV. 
 
 Rules:
@@ -110,6 +132,7 @@ Rules:
 - Naturally embed these missing keywords: ${JSON.stringify(missingKeywords)}
 - Remove these red flags: ${JSON.stringify(redFlags)}
 - Keep role titles and company names intact
+${langInstruction}
 - Use this Markdown structure:
 
 ## WORK EXPERIENCE
@@ -131,39 +154,72 @@ Output ONLY the Experience and Projects sections in Markdown. Nothing else.`;
 
     } else if (step === 3) {
       systemPrompt = "You are an elite ATS optimization expert. You compile complete, 1-page, scroll-stopping resumes that pass both ATS filters and human hiring managers in under 10 seconds.";
-      userPrompt = `Compile the FINAL complete ATS-optimized 1-page resume using the rewritten experience below and the original CV data.
+      
+      const isSoftwareEngineer = jobCategory === "software_engineer";
+
+      let languageGuidelines = "";
+      if (cvLanguage === "en") {
+        languageGuidelines = `LANGUAGE & HEADING GUIDELINES:
+- You MUST compile the entire resume in English (including summary, headers, work experience, projects, and skills). Translate any Indonesian details to English if necessary.
+- Use English headings: "ABOUT ME" or "PROFESSIONAL SUMMARY", "TECHNICAL SKILLS" or "SKILLS", "WORK EXPERIENCE", "PROJECTS", "EDUCATION", "CERTIFICATIONS & ACHIEVEMENTS" or "CERTIFICATION".`;
+      } else if (cvLanguage === "id") {
+        languageGuidelines = `LANGUAGE & HEADING GUIDELINES:
+- You MUST compile the entire resume in Bahasa Indonesia. Translate any English details to Bahasa Indonesia if necessary.
+- Use Indonesian headings: "TENTANG SAYA", "KEAHLIAN" or "KEAHLIAN TEKNIS", "PENGALAMAN MAGANG / KERJA", "PROYEK", "PENDIDIKAN", "SERTIFIKASI & PRESTASI".`;
+      } else if (cvLanguage === "bilingual") {
+        languageGuidelines = `LANGUAGE & HEADING GUIDELINES:
+- You MUST compile the resume in Bilingual format (ID/EN). Use combined or side-by-side English & Bahasa Indonesia translation for summaries and bullet details.
+- Use bilingual headings: "PROFESSIONAL SUMMARY / RINGKASAN PROFESIONAL", "EDUCATION / PENDIDIKAN", "WORK EXPERIENCE / PENGALAMAN KERJA", "PROJECTS / PROYEK", "SKILLS / KEMAMPUAN".`;
+      } else {
+        languageGuidelines = `LANGUAGE & HEADING GUIDELINES:
+- Adapt the section headers language matching the original CV language style.
+- If original CV is in Indonesian, use Indonesian headings: "TENTANG SAYA", "PENGALAMAN MAGANG / KERJA", "PENDIDIKAN", "PENGALAMAN ORGANISASI", "SERTIFIKASI", "KEAHLIAN".
+- If English: "ABOUT ME" or "PROFESSIONAL SUMMARY", "WORK EXPERIENCE", "EDUCATION", "ORGANIZATION EXPERIENCE", "CERTIFICATION", "SKILLS".
+- If bilingual (ID/EN), use bilingual headings: "PROFESSIONAL SUMMARY / RINGKASAN PROFESIONAL", "EDUCATION / PENDIDIKAN", "WORK EXPERIENCE / PENGALAMAN KERJA", "ORGANIZATIONAL EXPERIENCE / PENGALAMAN ORGANISASI", "SKILLS / KEMAMPUAN".`;
+      }
+
+      if (isSoftwareEngineer) {
+        userPrompt = `Compile the FINAL complete ATS-optimized 1-page resume using the rewritten experience below and the original CV data. Follow the structure of a Software Engineer / Programmer resume:
 
 STRICT FORMAT RULES — follow exactly:
 1. Name as H1 centered, job title below name, contact info on one line
-2. Section headers as H2 ALL-CAPS
-3. Bullet points using "- " prefix, Google XYZ formula
+2. Section headers as H2 ALL-CAPS (e.g., ## WORK EXPERIENCE)
+3. Bullet points using "- " prefix, Google XYZ formula for work experience/projects
 4. Max 1 page when printed — be ruthlessly concise
 5. Output ONLY clean Markdown, no explanations, no preamble
 
+${languageGuidelines}
+
 REQUIRED SECTIONS IN ORDER:
-# [FULL NAME]
-[Job Title]
-[City, Country] | [email] | [phone] | [website/LinkedIn/GitHub]
+# [NAMA LENGKAP / FULL NAME]
+[Job Title / Peran Pekerjaan]
+[Kota, Provinsi] | [Email] | [Nomor Telepon] | [LinkedIn URL] | [GitHub URL] | [Portfolio URL]
 
-## PROFESSIONAL SUMMARY
-2-3 punchy lines. ATS keywords front-loaded. Quantify impact.
+## [PROFESSIONAL SUMMARY / SUMMARY]
+Detail-oriented Software Engineer with experience in building, testing, and deploying full-stack web applications. Proficient in key programming languages and modern frameworks. Strong track record of optimizing database performance, developing RESTful APIs, and delivering scalable software solutions.
 
-## TECHNICAL SKILLS
-Backend & API: ...
-Database: ...
-[etc — keep to 4 lines max]
+## [TECHNICAL SKILLS / SKILLS]
+* **Languages:** [List languages e.g., JavaScript/TypeScript, Python, PHP, SQL, HTML/CSS]
+* **Frameworks & Libraries:** [List frameworks e.g., React.js, Next.js, Node.js, Express, Laravel]
+* **Databases:** [List databases e.g., MySQL, PostgreSQL, MongoDB, Redis]
+* **Tools & DevOps:** [List tools e.g., Git/GitHub, Docker, AWS (S3, EC2), Vercel, Postman]
+* **Methodologies:** [List methods e.g., Agile/Scrum, CI/CD, REST API Design]
 
-## WORK EXPERIENCE
-### [Title] | [Company] | [Dates]
+## [WORK EXPERIENCE / PENGALAMAN KERJA]
+### [Job Title] | [Company] | [Dates]
 - [XYZ bullet]
 - [XYZ bullet]
 
-## PROJECTS
-### [Name] | [Stack]
+## [PROJECTS / PROYEK]
+### [Project Name] | [Tech Stack] | [GitHub / Live URL]
+- [XYZ bullet describing what was built, measuring speed/metrics, and tools used]
 - [XYZ bullet]
 
-## EDUCATION
+## [EDUCATION / PENDIDIKAN]
 ### [Degree] | [University] | [GPA if strong]
+
+## [CERTIFICATIONS & ACHIEVEMENTS / SERTIFIKASI]
+* **[Sertifikasi / Penghargaan]** – [Penerbit / Penyelenggara], [Bulan Tahun]
 
 ---
 Rewritten Experience Section:
@@ -176,6 +232,62 @@ Job Description (ATS keywords to include):
 ${jobDescription}
 
 Output the complete final resume in Markdown NOW:`;
+      } else {
+        userPrompt = `Compile the FINAL complete ATS-optimized 1-page resume using the rewritten experience below and the original CV data. Follow the general professional resume template:
+
+STRICT FORMAT RULES — follow exactly:
+1. Name as H1 centered, job title below name, contact info on one line
+2. Section headers as H2 ALL-CAPS (e.g., ## WORK EXPERIENCE)
+3. Bullet points using "- " prefix, Google XYZ formula for work experience
+4. Max 1 page when printed — be ruthlessly concise
+5. Output ONLY clean Markdown, no explanations, no preamble
+
+${languageGuidelines}
+
+SKILLS SECTION FORMATTING:
+- Format the SKILLS / KEAHLIAN section as inline groupings separated by "●" to save vertical space.
+- Example: 
+  * ● Hard Skill : A, B, C ● Software : X, Y, Z ● Bahasa : Indo, English
+- Do NOT use long vertical bullet lists for skills. Keep to 2-3 lines max.
+
+REQUIRED SECTIONS IN ORDER:
+# [FULL NAME]
+[Job Title]
+[City, Country] | [email] | [phone] | [website/LinkedIn/GitHub]
+
+## [PROFESSIONAL SUMMARY / TENTANG SAYA]
+2-3 punchy lines. ATS keywords front-loaded. Quantify impact.
+
+## [SKILLS / KEAHLIAN]
+* ● Hard Skill : ... ● Software : ... ● Bahasa : ...
+
+## [WORK EXPERIENCE / PENGALAMAN MAGANG / KERJA]
+### [Title] | [Company] | [Dates]
+- [XYZ bullet]
+- [XYZ bullet]
+
+## [PENGALAMAN ORGANISASI / ORGANIZATION EXPERIENCE]
+### [Position] | [Organization] | [Dates]
+- [describe leadership activity and outcome]
+
+## [EDUCATION / PENDIDIKAN]
+### [Degree] | [University] | [GPA if strong]
+
+## [CERTIFICATIONS / SERTIFIKASI]
+- [Certification Name] - [Issuing Organization] (Year)
+
+---
+Rewritten Experience Section:
+${rewrittenExperience}
+
+Original CV data:
+${cvText}
+
+Job Description (ATS keywords to include):
+${jobDescription}
+
+Output the complete final resume in Markdown NOW:`;
+      }
 
     } else if (step === 4) {
       systemPrompt = "You are an elite ATS resume writer and counselor. Suggest EXACTLY where and how to integrate a missing keyword into the resume. Provide a single concrete bullet point recommendation using the Google XYZ formula.";
@@ -187,22 +299,209 @@ CV: ${cvText}
 Job Description: ${jobDescription}`;
 
     } else if (step === 5) {
-      systemPrompt = "You are an elite executive career coach and resume writer. Write a matching, highly professional cover letter based on the optimized CV and target Job Description. Respond ONLY in Markdown.";
-      userPrompt = `Write a professional 1-page Cover Letter.
-Make it compelling, tailored exactly to the target Job Description, and highlight the key achievements from the CV.
+      const isIndo = language === "id";
+      const isEmail = format?.startsWith("body_email");
+      const emailOpsi = format === "body_email_2" ? 2 : 1;
+      const isSoftwareEngineer = jobCategory === "software_engineer";
 
-Strict Format Rules:
-- Include date, sender, and recipient placeholders at the top
-- Professional salutation
-- 3-4 punchy paragraphs linking candidate skills to job needs
-- Professional sign-off
-- Output ONLY Markdown — no extra preamble, no chat, no explanations.
+      systemPrompt = `You are an elite executive career coach, ATS resume writer, and programmer recruiter. Write a highly professional and tailored ${isEmail ? "Body Email cover draft" : "1-page Cover Letter"} in ${isIndo ? "Bahasa Indonesia" : "English"} for a ${isSoftwareEngineer ? "Software Engineer / IT Professional" : "General Professional"}. Respond ONLY in Markdown.`;
+      
+      if (isSoftwareEngineer) {
+        if (isEmail) {
+          userPrompt = `Write a professional Job Application Body Email in ${isIndo ? "Bahasa Indonesia" : "English"} for a Software Engineer, following this template format:
+Subject: Application for [Job Title] - [Your Full Name]
 
-Optimized CV:
+Dear Hiring Manager / [Recruiter Name],
+
+My name is [Your Full Name], and I am writing to express my interest in the [Job Title] position at [Company Name]. With a strong background in software development and hands-on experience building applications using [Key Tech 1] and [Key Tech 2], I am excited about the opportunity to contribute to your engineering team.
+
+In my recent experience, I successfully [mention 1 main technical accomplishment using quantitative metrics, e.g., optimized database queries reducing API latency by 35%]. I am highly passionate about writing clean, maintainable code, solving complex architectural challenges, and continuously learning new technologies.
+
+I have attached my resume, which details my technical skills and project portfolio. You can also view my source code and previous works on my GitHub at [GitHub URL] and portfolio at [Portfolio URL].
+
+Thank you for your time and consideration. I look forward to the possibility of discussing how my technical background aligns with the goals of [Company Name].
+
+Best regards,
+
+[Your Full Name]
+[Phone Number]
+[GitHub URL]
+[LinkedIn / Portfolio URL]
+
+Instructions:
+- Fill in the brackets with the candidate's actual data from the CV and target Job Description.
+- If recipient name is unknown, use a polite general salutation like "Dear Hiring Team,".
+- Highlight specific tech stacks and quantitative achievements from the candidate's CV.
+- Output ONLY the final Subject and Body in Markdown format, with "Subject: ..." as the very first line. Do not include extra greetings, chat, or explanations.
+
+Candidate's CV data:
 ${cvText}
 
 Job Description:
 ${jobDescription}`;
+        } else {
+          userPrompt = `Write a formal Cover Letter in ${isIndo ? "Bahasa Indonesia" : "English"} for a Software Engineer, following this template format:
+[Date Placeholder]
+
+[Sender Name]
+[City, Country] | [Email] | [Phone]
+[LinkedIn] | [GitHub]
+
+To:
+Hiring Manager
+[Company Name]
+[Company Address Placeholder]
+
+Dear Hiring Manager / [Recruiter Name],
+
+My name is [Your Full Name], and I am writing to express my interest in the [Job Title] position at [Company Name]. With a strong background in software engineering and hands-on experience building scalable applications using [Key Tech 1] and [Key Tech 2], I am excited about the opportunity to contribute to your team.
+
+In my recent experience, I successfully [describe 1-2 main technical accomplishments with quantitative metrics and how you solved them using specific tools]. I am highly passionate about writing clean, maintainable code, solving complex architectural challenges, and continuously learning new technologies.
+
+I have attached my resume, which details my technical skills and project portfolio. You can also view my source code and previous works on my GitHub at [GitHub URL].
+
+Thank you for your time and consideration. I look forward to the possibility of discussing how my technical background aligns with the goals of [Company Name].
+
+Best regards,
+
+[Your Full Name]
+
+Instructions:
+- Fill in the brackets with the candidate's actual data from the CV and target Job Description.
+- Tailor details to Tokopedia, Gojek, Shopee, or whatever company is target in the Job Description.
+- Output ONLY the final Cover Letter in Markdown format. Do not include extra greetings, chat, or explanations.
+
+Candidate's CV data:
+${cvText}
+
+Job Description:
+${jobDescription}`;
+        }
+      } else {
+        if (isEmail) {
+          if (isIndo) {
+            if (emailOpsi === 1) {
+              userPrompt = `Write a professional Body Email for a job application in Bahasa Indonesia, strictly following the tone and format of this template:
+Subject: Lamaran untuk Posisi [Nama Posisi] - [Nama Kamu]
+Yth. [Nama Penerima],
+
+Saya berharap email ini menemui Anda dalam keadaan baik.
+Nama saya [Nama Kamu], dan saya sangat tertarik untuk melamar posisi [Nama Posisi] di [Nama Perusahaan]. Saya telah melampirkan CV dan portofolio saya untuk pertimbangan Anda.
+Dengan latar belakang saya di bidang [sebutkan bidang terkait, seperti Administrasi, Media Sosial, Desain Grafis, atau Akuntansi, etc], saya yakin dapat berkontribusi secara signifikan untuk tim Anda. Saya sangat antusias untuk dapat mendiskusikan bagaimana keterampilan dan pengalaman saya dapat memberikan nilai tambah bagi [Nama Perusahaan].
+
+Terima kasih atas waktu dan perhatian Anda. Saya berharap dapat mendengar kabar dari Anda segera.
+
+Hormat saya,
+[Nama Kamu]
+[Nomor Telepon Anda]
+
+Instructions:
+- Fill in the brackets with the candidate's actual data from the CV and target Job Description.
+- If recipient name is unknown, use "Bapak/Ibu Pimpinan Rekrutmen" or similar.
+- Output ONLY the final Subject and Body in Markdown format, with "Subject: ..." as the very first line. Do not include extra greetings, chat, or explanations.
+
+Candidate's CV data:
+${cvText}
+
+Job Description:
+${jobDescription}`;
+            } else {
+              userPrompt = `Write a professional Body Email for a job application in Bahasa Indonesia, strictly following the tone and format of this template:
+Subject: Lamaran untuk Posisi [Nama Posisi] - [Nama Kamu]
+Yth. [Nama Penerima],
+
+Perkenalkan, nama saya [Nama Kamu]. Saya menulis email ini untuk mengajukan lamaran pada posisi [Nama Posisi] di [Nama Perusahaan].
+Saya memiliki pengalaman dan keterampilan yang relevan di bidang [Administrasi/Media Sosial/Desain Grafis/Akuntansi, etc] yang dapat mendukung tujuan dan kebutuhan perusahaan. Bersama email ini, saya lampirkan CV dan portofolio saya sebagai bahan pertimbangan.
+Saya sangat antusias untuk dapat berkontribusi dan bergabung dengan tim yang inovatif dan dinamis di [Nama Perusahaan]. Saya siap untuk menjelaskan lebih lanjut tentang kualifikasi dan pengalaman saya dalam wawancara.
+
+Terima kasih atas waktu dan kesempatan yang diberikan. Saya berharap dapat mendengar kabar baik dari kamu segera.
+
+Hormat saya,
+[Nama Kamu]
+[Nomor Telepon Kamu]
+
+Instructions:
+- Fill in the brackets with the candidate's actual data from the CV and target Job Description.
+- If recipient name is unknown, use "Bapak/Ibu Pimpinan Rekrutmen" or similar.
+- Output ONLY the final Subject and Body in Markdown format, with "Subject: ..." as the very first line. Do not include extra greetings, chat, or explanations.
+
+Candidate's CV data:
+${cvText}
+
+Job Description:
+${jobDescription}`;
+            }
+          } else {
+            userPrompt = `Write a professional Body Email for a job application in English, following this template format:
+Subject: Job Application: [Position Name] - [Your Name]
+Dear [Recipient Name],
+
+I hope this email finds you well.
+My name is [Your Name], and I am writing to express my strong interest in the [Position Name] role at [Company Name]. I have attached my CV and portfolio for your consideration.
+With my background in [mention relevant field], I am confident in my ability to contribute to your team. I am very enthusiastic about the opportunity to discuss how my skills and experience can bring value to [Company Name].
+
+Thank you for your time and consideration. I look forward to hearing from you soon.
+
+Best regards,
+[Your Name]
+[Your Phone Number]
+
+Instructions:
+- Fill in the brackets with the candidate's actual data from the CV and target Job Description.
+- Output ONLY the final Subject and Body in Markdown format, with "Subject: ..." as the very first line. Do not include extra greetings, chat, or explanations.
+
+Candidate's CV data:
+${cvText}
+
+Job Description:
+${jobDescription}`;
+          }
+        } else {
+          if (isIndo) {
+            userPrompt = `Write a professional Cover Letter in Bahasa Indonesia, structured similarly to this template:
+Selamat siang Bapak/Ibu...,
+
+Nama saya [Nama Kamu], dengan pengalaman di [sebutkan bidang Kamu]. Saya tertarik untuk bergabung dengan [Nama Perusahaan], perusahaan yang saya kagumi karena [sebutkan alasan spesifik]. Meskipun saat ini tidak ada posisi yang terbuka, saya sangat ingin menawarkan kualifikasi dan minat yang kuat untuk berkontribusi. Saya yakin dengan kemampuan saya untuk memberikan nilai tambah bagi tim [Nama Perusahaan] dan siap untuk berdiskusi lebih lanjut dalam sebuah wawancara. Terlampir adalah CV saya untuk bahan pertimbangan Anda.
+
+Terima kasih atas perhatian dan kesempatan yang diberikan.
+
+Salam hormat,
+[Nama Kamu]
+
+Instructions:
+- Tailor the template to the target Job Description and highlight the achievements from the CV.
+- Include date, sender, and recipient details at the very top of the Cover Letter.
+- Output ONLY the final Cover Letter in Markdown format. Do not include extra greetings, chat, or explanations.
+
+Candidate's CV data:
+${cvText}
+
+Job Description:
+${jobDescription}`;
+          } else {
+            userPrompt = `Write a professional Cover Letter in English, structured similarly to this template:
+Dear Ms/Mr. .....,
+
+My name is [Your Name], with experience in [mention your field]. I am interested in joining [Company Name], a company I admire for [mention specific reasons]. Although there are currently no open positions, I am eager to offer my qualifications and strong interest in contributing. I am confident in my ability to add value to [Company Name]'s team and am prepared to discuss further in an interview. Attached is my CV for your consideration.
+
+Thank you for your attention and this opportunity.
+
+Best regards,
+[Your Name]
+
+Instructions:
+- Tailor the template to the target Job Description and highlight the achievements from the CV.
+- Include date, sender, and recipient details at the very top of the Cover Letter.
+- Output ONLY the final Cover Letter in Markdown format. Do not include extra greetings, chat, or explanations.
+
+Candidate's CV data:
+${cvText}
+
+Job Description:
+${jobDescription}`;
+          }
+        }
+      }
 
     } else {
       return NextResponse.json({ error: "Langkah (step) tidak valid." }, { status: 400 });
