@@ -126,6 +126,31 @@ export default function Home() {
   const [keywordSuggestion, setKeywordSuggestion] = useState<string>("");
   const [loadingKeywordSuggestion, setLoadingKeywordSuggestion] = useState<boolean>(false);
   const [selectedTemplate, setSelectedTemplate] = useState<"serif" | "sans" | "compact">("serif");
+  const [forceSinglePage, setForceSinglePage] = useState<boolean>(false);
+  const [canvasHeight, setCanvasHeight] = useState<number>(1123);
+
+  // Measure natural scrollHeight of A4 cv preview and set height to fit pages
+  useEffect(() => {
+    if (currentStep !== 3 || activeTab !== "preview" || !pdfPreviewRef.current) return;
+
+    const timer = setTimeout(() => {
+      const el = pdfPreviewRef.current;
+      if (!el) return;
+      
+      const prevHeight = el.style.height;
+      el.style.height = "auto";
+      const naturalHeight = el.scrollHeight;
+      el.style.height = prevHeight;
+      
+      const pages = Math.max(1, Math.ceil(naturalHeight / 1123));
+      const targetHeight = forceSinglePage ? 1123 : pages * 1123;
+      if (canvasHeight !== targetHeight) {
+        setCanvasHeight(targetHeight);
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [editableCV, selectedTemplate, forceSinglePage, currentStep, activeTab, canvasHeight]);
 
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -425,6 +450,54 @@ export default function Home() {
     }
   };
 
+  const handleDownloadCoverLetterPDF = () => {
+    if (!coverLetter) {
+      showToast("No cover letter content to export.", "error");
+      return;
+    }
+
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if (!printWindow) {
+      showToast("Pop-up blocked. Please allow pop-ups and try again.", "error");
+      return;
+    }
+
+    const fileName = pdfFile ? `${pdfFile.name.replace(".pdf", "")}_Cover_Letter` : "Cover_Letter";
+    const bodyHtml = renderCV(coverLetter);
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>${fileName}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:${selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif"};
+      font-size:11pt;line-height:1.5;
+      color:#111;background:#fff;
+    }
+    p{margin-bottom:4mm;}
+    h1, h2, h3, h4{
+      margin-bottom:4mm;font-family:${selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif"};
+    }
+    h1{font-size:18pt;text-align:center;text-transform:uppercase;margin-bottom:6mm;}
+    @page{margin:20mm 25mm;size:A4}
+    @media print{body{padding:0}}
+  </style>
+</head>
+<body style="padding:0 20mm">
+${bodyHtml}
+<script>
+  window.onload=function(){setTimeout(function(){window.print()},400)};
+<\/script>
+</body>
+</html>`);
+
+    printWindow.document.close();
+    showToast("Print dialog opened — choose 'Save as PDF' to export Cover Letter.", "success");
+  };
+
   const handleReset = () => {
     setPdfFile(null);
     setJobDescription("");
@@ -438,15 +511,21 @@ export default function Home() {
     setSelectedKeyword(null);
     setKeywordSuggestion("");
     setCoverLetter("");
+    setForceSinglePage(false);
   };
 
-  const getCVStyles = (temp: "serif" | "sans" | "compact") => {
+  const getCVStyles = (temp: "serif" | "sans" | "compact", force1Page: boolean = false) => {
     let font = "'Calibri','Georgia',serif";
     let bodyFont = "'Calibri','Georgia',serif";
     let h1Font = "'Calibri','Georgia',serif";
-    let pageMargin = "12mm 16mm";
-    let lineGap = "1.4";
-    let spacingTop = "4.5mm";
+    let pageMargin = force1Page ? "8mm 10mm" : "12mm 16mm";
+    let lineGap = force1Page ? "1.2" : "1.4";
+    let spacingTop = force1Page ? "3mm" : "4.5mm";
+    let bodyFontSize = force1Page ? "9pt" : "10pt";
+    let h1FontSize = force1Page ? "14pt" : "16pt";
+    let h2FontSize = force1Page ? "9pt" : "9.5pt";
+    let h3FontSize = force1Page ? "9pt" : "10pt";
+    let liFontSize = force1Page ? "9pt" : "9.5pt";
     
     if (temp === "serif") {
       font = "'Times New Roman','Garamond',serif";
@@ -460,21 +539,23 @@ export default function Home() {
       font = "'Calibri',sans-serif";
       bodyFont = font;
       h1Font = font;
-      pageMargin = "8mm 10mm";
-      lineGap = "1.25";
-      spacingTop = "3.2mm";
+      if (!force1Page) {
+        pageMargin = "8mm 10mm";
+        lineGap = "1.25";
+        spacingTop = "3.2mm";
+      }
     }
 
     return `
       *{box-sizing:border-box;margin:0;padding:0}
       body{
         font-family:${bodyFont};
-        font-size:10pt;line-height:${lineGap};
+        font-size:${bodyFontSize};line-height:${lineGap};
         color:#111;background:#fff;
       }
       h1{
         font-family:${h1Font};
-        font-size:16pt;font-weight:700;
+        font-size:${h1FontSize};font-weight:700;
         text-align:center;text-transform:uppercase;
         letter-spacing:2px;margin-bottom:1mm;
       }
@@ -486,19 +567,19 @@ export default function Home() {
       }
       h2{
         font-family:${h1Font};
-        font-size:9.5pt;font-weight:700;
+        font-size:${h2FontSize};font-weight:700;
         text-transform:uppercase;letter-spacing:1.5px;
         border-bottom:1.5px solid #111;
         padding-bottom:0.8mm;margin-top:${spacingTop};margin-bottom:2mm;
       }
       h3{
         font-family:${bodyFont};
-        font-size:10pt;font-weight:700;
+        font-size:${h3FontSize};font-weight:700;
         margin-top:2.5mm;margin-bottom:0.5mm;
       }
-      p{margin-bottom:1mm;font-size:10pt;}
+      p{margin-bottom:1mm;font-size:${bodyFontSize};}
       ul{padding-left:4mm;margin-bottom:1.5mm}
-      li{margin-bottom:0.8mm;font-size:9.5pt;}
+      li{margin-bottom:0.8mm;font-size:${liFontSize};}
       strong{font-weight:700}
       em{font-style:italic}
       hr{border:none;border-top:0.5px solid #aaa;margin:2mm 0}
@@ -535,9 +616,9 @@ export default function Home() {
 <head>
   <meta charset="UTF-8"/>
   <title>${fileName}</title>
-  <style>${getCVStyles(selectedTemplate)}</style>
+  <style>${getCVStyles(selectedTemplate, forceSinglePage)}</style>
 </head>
-<body style="padding: ${selectedTemplate === "compact" ? "0 12mm" : "0 18mm"}">
+<body style="padding: ${forceSinglePage ? "0 10mm" : (selectedTemplate === "compact" ? "0 12mm" : "0 18mm")}">
 ${bodyHtml}
 <script>
   window.onload=function(){setTimeout(function(){window.print()},400)};
@@ -1113,16 +1194,22 @@ ${bodyHtml}
                   ))}
                 </div>
                 {currentStep === 3 ? (
-                  <div className="flex items-center gap-1 bg-[var(--bg-base)] p-1 rounded-lg border" style={{ borderColor: 'var(--border)' }}>
-                    <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase px-1.5" style={{ fontFamily: 'var(--font-jakarta)' }}>Style:</span>
-                    {(["serif", "sans", "compact"] as const).map((temp) => (
-                      <button key={temp} onClick={() => setSelectedTemplate(temp)}
-                        className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded-md cursor-pointer transition-all ${selectedTemplate === temp ? "bg-white text-indigo-700 shadow-xs border" : "text-slate-500 hover:text-slate-700"}`}
-                        style={{ fontFamily: 'var(--font-jakarta)', borderColor: 'var(--border)' }}
-                      >
-                        {temp}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 bg-[var(--bg-base)] p-1 rounded-lg border" style={{ borderColor: 'var(--border)' }}>
+                      <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase px-1.5" style={{ fontFamily: 'var(--font-jakarta)' }}>Style:</span>
+                      {(["serif", "sans", "compact"] as const).map((temp) => (
+                        <button key={temp} onClick={() => setSelectedTemplate(temp)}
+                          className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded-md cursor-pointer transition-all ${selectedTemplate === temp ? "bg-white text-indigo-700 shadow-xs border" : "text-slate-500 hover:text-slate-700"}`}
+                          style={{ fontFamily: 'var(--font-jakarta)', borderColor: 'var(--border)' }}
+                        >
+                          {temp}
+                        </button>
+                      ))}
+                    </div>
+                    <label className="flex items-center gap-1.5 text-[9px] font-bold uppercase cursor-pointer select-none text-slate-500 hover:text-slate-700 bg-[var(--bg-base)] px-2 py-1 rounded-lg border" style={{ borderColor: 'var(--border)', fontFamily: 'var(--font-jakarta)' }}>
+                      <input type="checkbox" checked={forceSinglePage} onChange={(e) => setForceSinglePage(e.target.checked)} className="cursor-pointer" />
+                      <span>Fit 1 Page</span>
+                    </label>
                   </div>
                 ) : (
                   <span className="text-[10px] font-bold uppercase tracking-wider pr-3 text-[var(--text-muted)]" style={{ fontFamily: 'var(--font-jakarta)' }}>Workspace</span>
@@ -1131,7 +1218,7 @@ ${bodyHtml}
 
               <div className="relative rounded-2xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.02)]" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
                 <AnimatePresence>
-                  {loading && (
+                  {loading && activeTab !== "coverletter" && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                       className="no-print absolute inset-0 z-40 flex flex-col items-center justify-center p-8 text-center rounded-2xl"
                       style={{ background: 'rgba(255,255,255,0.95)' }}
@@ -1185,27 +1272,57 @@ ${bodyHtml}
                     </div>
                   </div>
                 ) : activeTab === "coverletter" ? (
-                  <div className="w-full min-h-[600px] p-6 bg-slate-50 flex flex-col gap-4">
+                  <div className="w-full min-h-[600px] p-6 bg-slate-50 flex flex-col gap-4 relative">
+                    <AnimatePresence>
+                      {loadingCoverLetter && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                          className="absolute inset-0 z-45 flex flex-col items-center justify-center p-8 text-center rounded-2xl"
+                          style={{ background: 'rgba(255,255,255,0.95)' }}
+                        >
+                          <ArrowClockwise weight="bold" className="w-7 h-7 animate-spin mb-4" style={{ color: 'var(--accent)' }} />
+                          <p className="font-bold text-base tracking-tight" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-jakarta)' }}>Drafting cover letter...</p>
+                          <p className="text-[11px] mt-1.5 font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Writing tailored matches · Please wait</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                     {coverLetter ? (
-                      <div className="flex flex-col gap-3 bg-white rounded-2xl p-5 border border-[var(--border)] shadow-sm">
-                        <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: 'var(--border)' }}>
+                      <div className="flex flex-col gap-3 bg-[var(--bg-base)] rounded-2xl p-4 border border-[var(--border)] shadow-sm">
+                        <div className="flex items-center justify-between pb-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700" style={{ fontFamily: 'var(--font-jakarta)' }}>AI Generated Cover Letter</span>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(coverLetter);
-                              showToast("Cover letter copied to clipboard!", "success");
-                            }}
-                            className="px-3 py-1.5 text-[9px] font-bold uppercase bg-indigo-50 border border-indigo-150/40 text-indigo-700 hover:bg-indigo-100 rounded-lg cursor-pointer transition-all"
-                            style={{ fontFamily: 'var(--font-jakarta)' }}
-                          >
-                            Copy to Clipboard
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(coverLetter);
+                                showToast("Cover letter copied to clipboard!", "success");
+                              }}
+                              className="px-3 py-1.5 text-[9px] font-bold uppercase bg-indigo-50 border border-indigo-150/40 text-indigo-700 hover:bg-indigo-100 rounded-lg cursor-pointer transition-all"
+                              style={{ fontFamily: 'var(--font-jakarta)' }}
+                            >
+                              Copy to Clipboard
+                            </button>
+                            <button
+                              onClick={handleDownloadCoverLetterPDF}
+                              className="px-3 py-1.5 text-[9px] font-bold uppercase bg-emerald-50 border border-emerald-150/40 text-emerald-700 hover:bg-emerald-100 rounded-lg cursor-pointer transition-all flex items-center gap-1"
+                              style={{ fontFamily: 'var(--font-jakarta)' }}
+                            >
+                              <FileArrowDown weight="bold" className="w-3.5 h-3.5" /> Download PDF
+                            </button>
+                          </div>
                         </div>
-                        <textarea
-                          readOnly
-                          value={coverLetter}
-                          className="w-full h-[460px] text-xs font-mono whitespace-pre-wrap leading-relaxed focus:outline-none bg-transparent resize-none border-none text-slate-700"
-                        />
+                        <div className="w-full flex justify-center py-4 bg-slate-100 overflow-y-auto max-h-[500px] rounded-xl border">
+                          <div
+                            className="bg-white shadow-md p-8 text-slate-800 text-left"
+                            style={{
+                              width: "794px",
+                              minHeight: "1123px",
+                              fontFamily: selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif",
+                              fontSize: "10.5pt",
+                              lineHeight: 1.5,
+                              color: "#222",
+                            }}
+                            dangerouslySetInnerHTML={{ __html: renderCV(coverLetter) }}
+                          />
+                        </div>
                       </div>
                     ) : (
                       <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-white rounded-2xl border border-[var(--border)] shadow-sm min-h-[500px]">
@@ -1250,12 +1367,12 @@ ${bodyHtml}
                     <div
                       ref={previewWrapperRef}
                       className="w-full overflow-hidden bg-slate-100 flex justify-center py-4 relative"
-                      style={{ height: `${1123 * previewScale + 32}px` }}
+                      style={{ height: `${(currentStep === 3 ? (forceSinglePage ? 1123 : canvasHeight) : 1123) * previewScale + 32}px` }}
                     >
                       <div
                         style={{
                           width: "794px",
-                          height: "1123px",
+                          height: currentStep === 3 ? (forceSinglePage ? "1123px" : `${canvasHeight}px`) : "1123px",
                           transform: `scale(${previewScale})`,
                           transformOrigin: "top center",
                           position: "absolute",
@@ -1263,18 +1380,37 @@ ${bodyHtml}
                         }}
                       >
                         {currentStep === 3 ? (
-                          <div
-                            ref={pdfPreviewRef}
-                            className="pdf-canvas shadow-lg bg-white w-full h-full"
-                            dangerouslySetInnerHTML={{ __html: renderCV(editableCV) }}
-                            style={{
-                              fontFamily: selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif",
-                              fontSize: "10pt",
-                              lineHeight: selectedTemplate === "compact" ? 1.25 : 1.4,
-                              padding: selectedTemplate === "compact" ? "10mm 12mm" : "14mm 18mm",
-                              color: "#111",
-                            }}
-                          />
+                          <>
+                            <div
+                              ref={pdfPreviewRef}
+                              className="pdf-canvas shadow-lg bg-white w-full h-full relative"
+                              dangerouslySetInnerHTML={{ __html: renderCV(editableCV) }}
+                              style={{
+                                fontFamily: selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif",
+                                fontSize: forceSinglePage ? "9pt" : "10pt",
+                                lineHeight: forceSinglePage ? 1.2 : (selectedTemplate === "compact" ? 1.25 : 1.4),
+                                padding: forceSinglePage ? "8mm 10mm" : (selectedTemplate === "compact" ? "10mm 12mm" : "14mm 18mm"),
+                                color: "#111",
+                              }}
+                            />
+                            {/* Visual page break dividers when multi-page */}
+                            {!forceSinglePage && canvasHeight > 1123 && 
+                              Array.from({ length: Math.floor(canvasHeight / 1123) - 1 }).map((_, idx) => (
+                                <div
+                                  key={idx}
+                                  className="absolute left-0 right-0 pointer-events-none z-10 flex items-center justify-center border-t-2 border-dashed border-indigo-200"
+                                  style={{
+                                    top: `${(idx + 1) * 1123}px`,
+                                    height: "0px",
+                                  }}
+                                >
+                                  <span className="bg-indigo-600 text-white text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-sm select-none transform -translate-y-1/2 flex items-center gap-1" style={{ fontFamily: 'var(--font-jakarta)' }}>
+                                    Page {idx + 1} | Page {idx + 2}
+                                  </span>
+                                </div>
+                              ))
+                            }
+                          </>
                         ) : (
                           <div
                             className="pdf-canvas shadow-lg bg-white w-full h-full overflow-auto p-6"
