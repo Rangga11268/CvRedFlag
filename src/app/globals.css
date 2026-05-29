@@ -173,3 +173,27 @@ textarea { resize: vertical; }
     height: 100% !important; border: none !important;
   }
 }
+
+/* ── Diff Highlight Classes ─────────────────────────── */
+mark.diff-removed {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  text-decoration: line-through;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+mark.diff-added {
+  background-color: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s infinite ease-in-out;
+}
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.93; transform: scale(0.995); }
+}

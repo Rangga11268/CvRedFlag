@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
       openrouterApiKey, 
       isReanalysis, 
       originalRedFlags, 
-      originalKeywords 
+      originalKeywords,
+      keyword
     } = await req.json();
 
     // Determine API Keys
@@ -33,16 +34,28 @@ export async function POST(req: NextRequest) {
 
     if (step === 1) {
       if (isReanalysis) {
-        systemPrompt = "You are a senior ATS recruiter and analyst. Verify if the optimized CV has successfully resolved the previous red flags and incorporated the missing keywords. Respond ONLY in raw JSON — no markdown, no code blocks, no extra text.";
-        userPrompt = `Analyze the optimized CV against the target Job Description. 
-Check if the previously identified red flags have been successfully removed, and if the missing keywords are now successfully integrated.
+        systemPrompt = "You are a senior ATS recruiter and analyst. Verify if the optimized CV has successfully resolved the previous red flags, integrated missing keywords, and improved its overall score based on the professional rubric. Respond ONLY in raw JSON — no markdown, no code blocks, no extra text.";
+        userPrompt = `Analyze the optimized CV against the target Job Description and compare it with the original issues.
+
+You must calculate the score (0-100) strictly based on this weighted rubric:
+1. Keyword Matching & Relevance (Max 40 points): Compare CV with Job Description. How well are key skills and tools integrated?
+2. Impact & Action Verbs (Max 25 points): Check for strong action verbs (Developed, Optimized, etc.) and quantified metrics (%, $, numbers, timeframes).
+3. Structural Completeness (Max 20 points): Ensure presence of critical sections: Contact, Professional Summary, Work Experience/Projects, Education, Skills. Deduct 4 points for each missing section.
+4. Readability & Formatting (Max 15 points): Word count (ideal 400-800), avoidance of first-person pronouns ("I", "me", "Saya", "Aku"), clean layout.
+
 Return ONLY this JSON format:
 {
-  "score": <number 0-100, should be significantly higher if keywords were added and red flags resolved>,
-  "missingKeywords": ["any keywords STILL missing"],
-  "redFlags": ["any red flags STILL present"],
-  "resolvedKeywords": ["keywords from the original list that are now successfully added"],
-  "resolvedRedFlags": ["red flags from the original list that are now successfully resolved/removed"]
+  "score": <total sum of breakdown scores, 0-100>,
+  "breakdown": {
+    "keywords": <score 0-40>,
+    "impact": <score 0-25>,
+    "structure": <score 0-20>,
+    "readability": <score 0-15>
+  },
+  "missingKeywords": ["any keywords from the original list that are STILL missing from the optimized CV"],
+  "redFlags": ["any red flags from the original list that are STILL present in the optimized CV"],
+  "resolvedKeywords": ["keywords from the original list that are now successfully added/present in the optimized CV"],
+  "resolvedRedFlags": ["red flags from the original list that are now successfully resolved/removed in the optimized CV"]
 }
 
 Target Job Description:
@@ -58,11 +71,26 @@ Original Missing Keywords to verify:
 ${JSON.stringify(originalKeywords)}`;
       } else {
         systemPrompt = "You are a senior ATS analyst and recruiter. Analyze the candidate's CV against the job description. Respond ONLY in raw JSON — no markdown, no code blocks, no extra text.";
-        userPrompt = `Act as a senior recruiter for this exact company. Analyze the resume against the job description and return ONLY this JSON:
+        userPrompt = `Act as a senior recruiter. Analyze the resume against the job description.
+Identify missing keywords (up to 5) and red flags (up to 3).
+
+Calculate the score (0-100) strictly based on this weighted rubric:
+1. Keyword Matching & Relevance (Max 40 points): Check overlap of skills/tools between CV and Job Description.
+2. Impact & Action Verbs (Max 25 points): Look for action verbs combined with quantified metrics/results.
+3. Structural Completeness (Max 20 points): Ensure sections (Contact, Professional Summary, Work Experience/Projects, Education, Skills) are present. Deduct 4 points for each missing section.
+4. Readability & Formatting (Max 15 points): Word count (ideal 400-800 words), absence of first-person pronouns ("Saya", "Aku", "I"), formatting clarity.
+
+Return ONLY this JSON:
 {
-  "score": <number 0-100>,
+  "score": <total sum of breakdown scores, 0-100>,
+  "breakdown": {
+    "keywords": <score 0-40>,
+    "impact": <score 0-25>,
+    "structure": <score 0-20>,
+    "readability": <score 0-15>
+  },
   "missingKeywords": ["up to 5 specific skills/tools missing from the CV"],
-  "redFlags": ["3 red flags a hiring manager spots in under 10 seconds"]
+  "redFlags": ["up to 3 red flags a hiring manager spots in under 10 seconds"]
 }
 
 Job Description:
@@ -148,6 +176,33 @@ Job Description (ATS keywords to include):
 ${jobDescription}
 
 Output the complete final resume in Markdown NOW:`;
+
+    } else if (step === 4) {
+      systemPrompt = "You are an elite ATS resume writer and counselor. Suggest EXACTLY where and how to integrate a missing keyword into the resume. Provide a single concrete bullet point recommendation using the Google XYZ formula.";
+      userPrompt = `Suggest how to integrate the missing keyword: "${keyword}" into the candidate's CV.
+Provide a clear 1-2 sentence suggestion. Focus on where to insert it and write a matching bullet point.
+
+Keyword: ${keyword}
+CV: ${cvText}
+Job Description: ${jobDescription}`;
+
+    } else if (step === 5) {
+      systemPrompt = "You are an elite executive career coach and resume writer. Write a matching, highly professional cover letter based on the optimized CV and target Job Description. Respond ONLY in Markdown.";
+      userPrompt = `Write a professional 1-page Cover Letter.
+Make it compelling, tailored exactly to the target Job Description, and highlight the key achievements from the CV.
+
+Strict Format Rules:
+- Include date, sender, and recipient placeholders at the top
+- Professional salutation
+- 3-4 punchy paragraphs linking candidate skills to job needs
+- Professional sign-off
+- Output ONLY Markdown — no extra preamble, no chat, no explanations.
+
+Optimized CV:
+${cvText}
+
+Job Description:
+${jobDescription}`;
 
     } else {
       return NextResponse.json({ error: "Langkah (step) tidak valid." }, { status: 400 });

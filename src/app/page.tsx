@@ -37,6 +37,12 @@ interface AnalysisResult {
   redFlags: string[];
   resolvedKeywords?: string[];
   resolvedRedFlags?: string[];
+  breakdown?: {
+    keywords: number;
+    impact: number;
+    structure: number;
+    readability: number;
+  };
 }
 
 interface Toast {
@@ -48,6 +54,53 @@ interface Toast {
 const easeOut = [0.16, 1, 0.3, 1] as const;
 
 let toastId = 0;
+
+const escapeHtml = (text: string) => {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+const highlightWords = (text: string, searchWords: string[], className: string, highlightMetrics: boolean = false) => {
+  if (!text) return "";
+  let html = escapeHtml(text);
+  
+  if (searchWords && searchWords.length > 0) {
+    const words = Array.from(new Set(searchWords.filter(w => w && w.trim().length > 0)));
+    if (words.length > 0) {
+      const escaped = words.map(w => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
+      // Match words case-insensitively with boundary check
+      const regex = new RegExp(`(${escaped.join('|')})`, 'gi');
+      html = html.replace(regex, `<mark class="${className}">$1</mark>`);
+    }
+  }
+  
+  if (highlightMetrics) {
+    // Highlight percentages, pluses, dollar values, and numeric quantities
+    const metricRegex = /(\b\d+(?:\.\d+)?%|\b\d+\+|\$\d+(?:\.\d+)?[kK]?)/g;
+    html = html.replace(metricRegex, `<mark class="diff-added">$1</mark>`);
+  }
+  
+  return html;
+};
+
+const getRedFlagKeyTerms = (flags: string[]) => {
+  if (!flags) return [];
+  const stopWords = new Set(["about", "above", "after", "again", "against", "along", "already", "would", "could", "should", "other", "under", "where", "there", "their", "these", "those", "using", "through", "during", "before", "after", "experience", "traditional", "certification", "government", "institutions"]);
+  const terms: string[] = [];
+  flags.forEach(flag => {
+    flag.split(/\s+/).forEach(word => {
+      const clean = word.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (clean.length > 4 && !stopWords.has(clean)) {
+        terms.push(clean);
+      }
+    });
+  });
+  return Array.from(new Set(terms));
+};
 
 export default function Home() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -65,7 +118,14 @@ export default function Home() {
   const [step3Result, setStep3Result] = useState<string>("");
 
   const [editableCV, setEditableCV] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"preview" | "raw">("preview");
+  const [activeTab, setActiveTab] = useState<"preview" | "raw" | "diff" | "coverletter">("preview");
+  const [coverLetter, setCoverLetter] = useState<string>("");
+  const [loadingCoverLetter, setLoadingCoverLetter] = useState<boolean>(false);
+  const [scoreHistory, setScoreHistory] = useState<number[]>([]);
+  const [selectedKeyword, setSelectedKeyword] = useState<string | null>(null);
+  const [keywordSuggestion, setKeywordSuggestion] = useState<string>("");
+  const [loadingKeywordSuggestion, setLoadingKeywordSuggestion] = useState<boolean>(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<"serif" | "sans" | "compact">("serif");
 
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -208,9 +268,11 @@ export default function Home() {
         setStep1Result(data);
         if (customCvText) {
           showToast(`Re-evaluation complete! New score: ${data.score}%`, "success");
+          setScoreHistory((prev) => [...prev, data.score]);
         } else {
           setCurrentStep(1);
           showToast(`Analysis complete! Match score: ${data.score}%`, "success");
+          setScoreHistory([data.score]);
         }
       } else if (stepNum === 2) {
         setStep2Result(data.result);
@@ -298,6 +360,7 @@ export default function Home() {
       if (res1.ok) {
         const data1 = await res1.json();
         setStep1Result(data1);
+        setScoreHistory((prev) => [...prev, data1.score]);
         showToast(`Refinement complete! Score: ${data1.score}%`, "success");
       } else {
         showToast("Refinement complete, but score evaluation failed.", "info");
@@ -314,6 +377,54 @@ export default function Home() {
     }
   };
 
+  const handleKeywordClick = async (kw: string) => {
+    setSelectedKeyword(kw);
+    setKeywordSuggestion("");
+    setLoadingKeywordSuggestion(true);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          step: 4,
+          keyword: kw,
+          cvText: editableCV || cvText,
+          jobDescription
+        })
+      });
+      if (!res.ok) throw new Error("Failed to get suggestion");
+      const data = await res.json();
+      setKeywordSuggestion(data.result);
+    } catch (e: any) {
+      setKeywordSuggestion("Failed to load placement suggestion. Please try again.");
+    } finally {
+      setLoadingKeywordSuggestion(false);
+    }
+  };
+
+  const handleGenerateCoverLetter = async () => {
+    setLoadingCoverLetter(true);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          step: 5,
+          cvText: editableCV || cvText,
+          jobDescription
+        })
+      });
+      if (!res.ok) throw new Error("Failed to generate cover letter");
+      const data = await res.json();
+      setCoverLetter(data.result);
+      showToast("Cover Letter generated successfully!", "success");
+    } catch (e: any) {
+      showToast(e.message || "Failed to generate Cover Letter", "error");
+    } finally {
+      setLoadingCoverLetter(false);
+    }
+  };
+
   const handleReset = () => {
     setPdfFile(null);
     setJobDescription("");
@@ -323,47 +434,79 @@ export default function Home() {
     setStep2Result("");
     setStep3Result("");
     setEditableCV("");
+    setScoreHistory([]);
+    setSelectedKeyword(null);
+    setKeywordSuggestion("");
+    setCoverLetter("");
   };
 
-  // CV print/preview CSS — matches reference image exactly
-  const CV_STYLES = `
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{
-      font-family:'Calibri','Georgia',serif;
-      font-size:10pt;line-height:1.4;
-      color:#111;background:#fff;
+  const getCVStyles = (temp: "serif" | "sans" | "compact") => {
+    let font = "'Calibri','Georgia',serif";
+    let bodyFont = "'Calibri','Georgia',serif";
+    let h1Font = "'Calibri','Georgia',serif";
+    let pageMargin = "12mm 16mm";
+    let lineGap = "1.4";
+    let spacingTop = "4.5mm";
+    
+    if (temp === "serif") {
+      font = "'Times New Roman','Garamond',serif";
+      bodyFont = font;
+      h1Font = font;
+    } else if (temp === "sans") {
+      font = "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif";
+      bodyFont = font;
+      h1Font = font;
+    } else if (temp === "compact") {
+      font = "'Calibri',sans-serif";
+      bodyFont = font;
+      h1Font = font;
+      pageMargin = "8mm 10mm";
+      lineGap = "1.25";
+      spacingTop = "3.2mm";
     }
-    h1{
-      font-size:16pt;font-weight:700;
-      text-align:center;text-transform:uppercase;
-      letter-spacing:2px;margin-bottom:1mm;
-    }
-    /* Subtitle line (job title) — first <p> after h1 */
-    h1 + p{
-      text-align:center;font-size:10pt;
-      font-weight:700;text-transform:uppercase;
-      letter-spacing:1px;margin-bottom:1mm;
-    }
-    h2{
-      font-size:9.5pt;font-weight:700;
-      text-transform:uppercase;letter-spacing:1.5px;
-      border-bottom:1.5px solid #111;
-      padding-bottom:0.8mm;margin-top:4.5mm;margin-bottom:2mm;
-    }
-    h3{
-      font-size:10pt;font-weight:700;
-      margin-top:2.5mm;margin-bottom:0.5mm;
-    }
-    p{margin-bottom:1mm;font-size:10pt;}
-    ul{padding-left:4mm;margin-bottom:1.5mm}
-    li{margin-bottom:0.8mm;font-size:9.5pt;}
-    strong{font-weight:700}
-    em{font-style:italic}
-    hr{border:none;border-top:0.5px solid #aaa;margin:2mm 0}
-    a{color:#111;text-decoration:underline}
-    @page{margin:12mm 16mm;size:A4}
-    @media print{body{padding:0}}
-  `;
+
+    return `
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{
+        font-family:${bodyFont};
+        font-size:10pt;line-height:${lineGap};
+        color:#111;background:#fff;
+      }
+      h1{
+        font-family:${h1Font};
+        font-size:16pt;font-weight:700;
+        text-align:center;text-transform:uppercase;
+        letter-spacing:2px;margin-bottom:1mm;
+      }
+      /* Subtitle line (job title) — first <p> after h1 */
+      h1 + p{
+        text-align:center;font-size:10pt;
+        font-weight:700;text-transform:uppercase;
+        letter-spacing:1px;margin-bottom:1mm;
+      }
+      h2{
+        font-family:${h1Font};
+        font-size:9.5pt;font-weight:700;
+        text-transform:uppercase;letter-spacing:1.5px;
+        border-bottom:1.5px solid #111;
+        padding-bottom:0.8mm;margin-top:${spacingTop};margin-bottom:2mm;
+      }
+      h3{
+        font-family:${bodyFont};
+        font-size:10pt;font-weight:700;
+        margin-top:2.5mm;margin-bottom:0.5mm;
+      }
+      p{margin-bottom:1mm;font-size:10pt;}
+      ul{padding-left:4mm;margin-bottom:1.5mm}
+      li{margin-bottom:0.8mm;font-size:9.5pt;}
+      strong{font-weight:700}
+      em{font-style:italic}
+      hr{border:none;border-top:0.5px solid #aaa;margin:2mm 0}
+      a{color:#111;text-decoration:underline}
+      @page{margin:${pageMargin};size:A4}
+      @media print{body{padding:0}}
+    `;
+  };
 
   const renderCV = (md: string): string => {
     // Configure marked for clean output
@@ -392,9 +535,9 @@ export default function Home() {
 <head>
   <meta charset="UTF-8"/>
   <title>${fileName}</title>
-  <style>${CV_STYLES}</style>
+  <style>${getCVStyles(selectedTemplate)}</style>
 </head>
-<body style="padding:0 18mm">
+<body style="padding: ${selectedTemplate === "compact" ? "0 12mm" : "0 18mm"}">
 ${bodyHtml}
 <script>
   window.onload=function(){setTimeout(function(){window.print()},400)};
@@ -747,6 +890,99 @@ ${bodyHtml}
                       </span>
                     </div>
                   </div>
+
+                  {step1Result.breakdown && (
+                    <div className="w-full flex flex-col gap-2.5 mt-2 pt-3 border-t text-left" style={{ borderColor: 'var(--border)' }}>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex justify-between text-[10px] font-bold" style={{ color: 'var(--text-secondary)' }}>
+                          <span style={{ fontFamily: 'var(--font-jakarta)' }}>Keyword Matching</span>
+                          <span>{step1Result.breakdown.keywords}/40</span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-[var(--bg-base)] overflow-hidden">
+                          <motion.div initial={{ width: 0 }} animate={{ width: `${(step1Result.breakdown.keywords / 40) * 100}%` }}
+                            className="h-full rounded-full" style={{ background: 'var(--accent)' }} />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex justify-between text-[10px] font-bold" style={{ color: 'var(--text-secondary)' }}>
+                          <span style={{ fontFamily: 'var(--font-jakarta)' }}>Impact & Action Verbs</span>
+                          <span>{step1Result.breakdown.impact}/25</span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-[var(--bg-base)] overflow-hidden">
+                          <motion.div initial={{ width: 0 }} animate={{ width: `${(step1Result.breakdown.impact / 25) * 100}%` }}
+                            className="h-full rounded-full bg-amber-500" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex justify-between text-[10px] font-bold" style={{ color: 'var(--text-secondary)' }}>
+                          <span style={{ fontFamily: 'var(--font-jakarta)' }}>Structural Completeness</span>
+                          <span>{step1Result.breakdown.structure}/20</span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-[var(--bg-base)] overflow-hidden">
+                          <motion.div initial={{ width: 0 }} animate={{ width: `${(step1Result.breakdown.structure / 20) * 100}%` }}
+                            className="h-full rounded-full bg-emerald-500" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex justify-between text-[10px] font-bold" style={{ color: 'var(--text-secondary)' }}>
+                          <span style={{ fontFamily: 'var(--font-jakarta)' }}>Readability & Formatting</span>
+                          <span>{step1Result.breakdown.readability}/15</span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-[var(--bg-base)] overflow-hidden">
+                          <motion.div initial={{ width: 0 }} animate={{ width: `${(step1Result.breakdown.readability / 15) * 100}%` }}
+                            className="h-full rounded-full bg-indigo-500" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {scoreHistory.length >= 1 && (
+                    <div className="w-full flex flex-col gap-1.5 mt-2 pt-3 border-t text-left" style={{ borderColor: 'var(--border)' }}>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]" style={{ fontFamily: 'var(--font-jakarta)' }}>Match Score Trend</span>
+                      <div className="h-10 w-full bg-[var(--bg-base)] rounded-xl border border-[var(--border)] p-1.5 flex items-center justify-between relative overflow-hidden">
+                        {scoreHistory.length === 1 ? (
+                          <div className="w-full text-center text-[9px] font-semibold text-[var(--text-muted)] flex items-center justify-center">
+                            Initial Score: {scoreHistory[0]}%
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex items-end justify-between relative">
+                            <svg className="w-full h-full" viewBox="0 0 100 24" preserveAspectRatio="none">
+                              <defs>
+                                <linearGradient id="trendGrad" x1="0" y1="1" x2="0" y2="0">
+                                  <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.0" />
+                                  <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.15" />
+                                </linearGradient>
+                              </defs>
+                              <path
+                                d={`M 0 24 ${scoreHistory.map((val, idx) => {
+                                  const x = (idx / (scoreHistory.length - 1)) * 100;
+                                  const y = 24 - (val / 100) * 20 - 2;
+                                  return `L ${x} ${y}`;
+                                }).join(" ")} L 100 24 Z`}
+                                fill="url(#trendGrad)"
+                              />
+                              <motion.path
+                                d={scoreHistory.map((val, idx) => {
+                                  const x = (idx / (scoreHistory.length - 1)) * 100;
+                                  const y = 24 - (val / 100) * 20 - 2;
+                                  return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+                                }).join(" ")}
+                                fill="none"
+                                stroke="var(--accent)"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                initial={{ pathLength: 0 }}
+                                animate={{ pathLength: 1 }}
+                                transition={{ duration: 0.8, ease: "easeInOut" }}
+                              />
+                            </svg>
+                            <div className="absolute top-1 left-2 text-[9px] font-bold text-slate-400 bg-white/90 px-1 rounded border border-slate-100">{scoreHistory[0]}%</div>
+                            <div className="absolute bottom-1 right-2 text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded border border-emerald-100">{scoreHistory[scoreHistory.length - 1]}%</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -762,8 +998,9 @@ ${bodyHtml}
                   <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
                     {step1Result.missingKeywords.map((kw, i) => (
                       <motion.span key={`missing-${i}`} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.02 }}
-                        className="px-2.5 py-1 text-[11px] rounded-lg font-semibold"
-                        style={{ background: 'var(--accent-glow)', border: '1px solid rgba(79,70,229,0.12)', color: 'var(--text-secondary)' }}
+                        onClick={() => handleKeywordClick(kw)}
+                        className={`px-2.5 py-1 text-[11px] rounded-lg font-semibold cursor-pointer transition-all hover:bg-indigo-150/40 hover:border-indigo-400/30 ${selectedKeyword === kw ? "ring-2 ring-indigo-500/30 bg-indigo-100/50" : ""}`}
+                        style={{ background: 'var(--accent-glow)', border: selectedKeyword === kw ? '1px solid var(--accent)' : '1px solid rgba(79,70,229,0.12)', color: 'var(--text-secondary)' }}
                       >
                         {kw}
                       </motion.span>
@@ -781,6 +1018,28 @@ ${bodyHtml}
                       <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>No missing keywords!</span>
                     )}
                   </div>
+
+                  {selectedKeyword && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+                      className="mt-2 p-3 rounded-xl border text-[11px] leading-relaxed flex flex-col gap-1.5"
+                      style={{ background: 'var(--bg-base)', borderColor: 'var(--border)' }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[var(--accent)]" style={{ fontFamily: 'var(--font-jakarta)' }}>
+                          💡 AI Suggestion: {selectedKeyword}
+                        </span>
+                        <button onClick={() => setSelectedKeyword(null)} className="text-[10px] hover:opacity-100 opacity-60 text-slate-500 font-bold cursor-pointer">Close</button>
+                      </div>
+                      {loadingKeywordSuggestion ? (
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <ArrowClockwise weight="bold" className="w-3 h-3 animate-spin" />
+                          <span>Generating suggestions...</span>
+                        </div>
+                      ) : (
+                        <p className="text-slate-600 font-medium">{keywordSuggestion}</p>
+                      )}
+                    </motion.div>
+                  )}
                 </div>
               )}
 
@@ -839,9 +1098,9 @@ ${bodyHtml}
             {/* COL 2 — CV Preview (center, takes priority on all screen sizes) */}
             <div className="lg:col-span-8 xl:col-span-5 order-first lg:order-none flex flex-col gap-3">
 
-              <div className="flex items-center justify-between rounded-xl p-1.5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+              <div className="flex flex-col md:flex-row md:items-center justify-between rounded-xl p-1.5 gap-2" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-1">
-                  {(["preview", "raw"] as const).map((tab) => (
+                  {(["preview", "raw", "diff", "coverletter"] as const).map((tab) => (
                     <button key={tab} onClick={() => setActiveTab(tab)}
                       className="px-4 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all"
                       style={activeTab === tab
@@ -849,11 +1108,25 @@ ${bodyHtml}
                         : { color: 'var(--text-muted)', fontFamily: 'var(--font-jakarta)' }
                       }
                     >
-                      {tab === "preview" ? "A4 Preview" : "Raw Editor"}
+                      {tab === "preview" ? "A4 Preview" : tab === "raw" ? "Raw Editor" : tab === "diff" ? "Diff View" : "Cover Letter"}
                     </button>
                   ))}
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider pr-3" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-jakarta)' }}>Workspace</span>
+                {currentStep === 3 ? (
+                  <div className="flex items-center gap-1 bg-[var(--bg-base)] p-1 rounded-lg border" style={{ borderColor: 'var(--border)' }}>
+                    <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase px-1.5" style={{ fontFamily: 'var(--font-jakarta)' }}>Style:</span>
+                    {(["serif", "sans", "compact"] as const).map((temp) => (
+                      <button key={temp} onClick={() => setSelectedTemplate(temp)}
+                        className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded-md cursor-pointer transition-all ${selectedTemplate === temp ? "bg-white text-indigo-700 shadow-xs border" : "text-slate-500 hover:text-slate-700"}`}
+                        style={{ fontFamily: 'var(--font-jakarta)', borderColor: 'var(--border)' }}
+                      >
+                        {temp}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-[10px] font-bold uppercase tracking-wider pr-3 text-[var(--text-muted)]" style={{ fontFamily: 'var(--font-jakarta)' }}>Workspace</span>
+                )}
               </div>
 
               <div className="relative rounded-2xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.02)]" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
@@ -877,6 +1150,93 @@ ${bodyHtml}
                     className="w-full h-full min-h-[600px] p-5 text-xs leading-relaxed focus:outline-none"
                     style={{ background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', border: 'none' }}
                   />
+                ) : activeTab === "diff" ? (
+                  <div className="w-full min-h-[600px] grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50">
+                    <div className="flex flex-col gap-2 bg-white rounded-xl p-4 border border-[var(--border)]">
+                      <div className="flex items-center gap-1.5 pb-2 border-b" style={{ borderColor: 'var(--border)' }}>
+                        <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700" style={{ fontFamily: 'var(--font-jakarta)' }}>Original CV (Red Flags)</span>
+                      </div>
+                      <div className="flex-1 overflow-auto max-h-[500px] text-xs font-mono whitespace-pre-wrap leading-relaxed pt-2 text-slate-600"
+                        dangerouslySetInnerHTML={{
+                          __html: highlightWords(
+                            cvText,
+                            getRedFlagKeyTerms([...(step1Result?.redFlags || []), ...(step1Result?.resolvedRedFlags || [])]),
+                            "diff-removed"
+                          )
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2 bg-white rounded-xl p-4 border border-[var(--border)]">
+                      <div className="flex items-center gap-1.5 pb-2 border-b" style={{ borderColor: 'var(--border)' }}>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700" style={{ fontFamily: 'var(--font-jakarta)' }}>Optimized CV (Added Keywords)</span>
+                      </div>
+                      <div className="flex-1 overflow-auto max-h-[500px] text-xs font-mono whitespace-pre-wrap leading-relaxed pt-2 text-slate-600"
+                        dangerouslySetInnerHTML={{
+                          __html: highlightWords(
+                            editableCV || cvText,
+                            [...(step1Result?.missingKeywords || []), ...(step1Result?.resolvedKeywords || [])],
+                            "diff-added",
+                            true
+                          )
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : activeTab === "coverletter" ? (
+                  <div className="w-full min-h-[600px] p-6 bg-slate-50 flex flex-col gap-4">
+                    {coverLetter ? (
+                      <div className="flex flex-col gap-3 bg-white rounded-2xl p-5 border border-[var(--border)] shadow-sm">
+                        <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: 'var(--border)' }}>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700" style={{ fontFamily: 'var(--font-jakarta)' }}>AI Generated Cover Letter</span>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(coverLetter);
+                              showToast("Cover letter copied to clipboard!", "success");
+                            }}
+                            className="px-3 py-1.5 text-[9px] font-bold uppercase bg-indigo-50 border border-indigo-150/40 text-indigo-700 hover:bg-indigo-100 rounded-lg cursor-pointer transition-all"
+                            style={{ fontFamily: 'var(--font-jakarta)' }}
+                          >
+                            Copy to Clipboard
+                          </button>
+                        </div>
+                        <textarea
+                          readOnly
+                          value={coverLetter}
+                          className="w-full h-[460px] text-xs font-mono whitespace-pre-wrap leading-relaxed focus:outline-none bg-transparent resize-none border-none text-slate-700"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-white rounded-2xl border border-[var(--border)] shadow-sm min-h-[500px]">
+                        <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mb-4 border border-indigo-100">
+                          <MagicWand weight="bold" className="w-6 h-6" />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-800 mb-1.5" style={{ fontFamily: 'var(--font-jakarta)' }}>Need a matching Cover Letter?</h4>
+                        <p className="text-xs text-slate-500 max-w-sm leading-relaxed mb-5">
+                          Draft an ATS-optimized cover letter specifically tailored to the target Job Description and highlighting your rewritten resume achievements.
+                        </p>
+                        <button
+                          disabled={loadingCoverLetter || !cvText || !jobDescription}
+                          onClick={handleGenerateCoverLetter}
+                          className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 cursor-pointer shadow-md transition-all flex items-center gap-1.5"
+                          style={{ fontFamily: 'var(--font-jakarta)' }}
+                        >
+                          {loadingCoverLetter ? (
+                            <>
+                              <ArrowClockwise weight="bold" className="w-3.5 h-3.5 animate-spin" />
+                              Generating Cover Letter...
+                            </>
+                          ) : (
+                            <>
+                              <MagicWand weight="bold" className="w-3.5 h-3.5" />
+                              Generate Cover Letter
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="w-full flex flex-col">
                     {currentStep === 3 && (
@@ -908,9 +1268,10 @@ ${bodyHtml}
                             className="pdf-canvas shadow-lg bg-white w-full h-full"
                             dangerouslySetInnerHTML={{ __html: renderCV(editableCV) }}
                             style={{
-                              fontFamily: "'Calibri','Georgia',serif",
+                              fontFamily: selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif",
                               fontSize: "10pt",
-                              lineHeight: 1.4,
+                              lineHeight: selectedTemplate === "compact" ? 1.25 : 1.4,
+                              padding: selectedTemplate === "compact" ? "10mm 12mm" : "14mm 18mm",
                               color: "#111",
                             }}
                           />
