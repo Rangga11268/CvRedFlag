@@ -140,12 +140,78 @@ textarea { resize: vertical; }
   border-radius: 4px;
 }
 
-.pdf-canvas h1 {
-  font-size: 16pt; font-weight: 700;
-  text-align: center; text-transform: uppercase;
-  letter-spacing: 2px; margin-bottom: 1mm; color: #000;
-  break-after: avoid; page-break-after: avoid;
+.pdf-canvas.cv-template-serif {
+  font-family: 'Times New Roman', 'Garamond', serif;
 }
+.pdf-canvas.cv-template-sans {
+  font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+.pdf-canvas.cv-template-compact {
+  font-family: 'Calibri', sans-serif;
+}
+
+.pdf-canvas .cv-header {
+  text-align: center;
+  margin-bottom: 2mm;
+}
+.pdf-canvas .cv-header h1 {
+  font-size: 16pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 0.5mm;
+  color: #000;
+}
+.pdf-canvas.cv-single-page .cv-header h1 {
+  font-size: 14pt;
+}
+
+.pdf-canvas .cv-header p:first-of-type {
+  font-size: 10.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 1.5mm;
+  color: #111;
+}
+.pdf-canvas.cv-single-page .cv-header p:first-of-type {
+  font-size: 9.5pt;
+  margin-bottom: 1mm;
+}
+
+.pdf-canvas .cv-header p {
+  font-size: 9.5pt;
+  color: #333;
+  margin-bottom: 0.5mm;
+  line-height: 1.3;
+}
+.pdf-canvas.cv-single-page .cv-header p {
+  font-size: 8.5pt;
+}
+.pdf-canvas .cv-header a {
+  color: #333;
+  text-decoration: underline;
+}
+
+.pdf-canvas .cv-availability-box {
+  text-align: center;
+  font-size: 8.5pt;
+  font-style: italic;
+  color: #444;
+  background: #f1f5f9;
+  padding: 1.2mm 3mm;
+  margin: 1.5mm auto 2mm auto;
+  border-radius: 3px;
+  width: fit-content;
+  max-width: 100%;
+  break-inside: avoid;
+}
+.pdf-canvas.cv-single-page .cv-availability-box {
+  font-size: 8pt;
+  padding: 0.8mm 2.5mm;
+  margin: 1mm auto 1.5mm auto;
+}
+
 .pdf-canvas h2 {
   font-size: 9.5pt; font-weight: 700;
   text-transform: uppercase; letter-spacing: 1.5px;
@@ -153,14 +219,54 @@ textarea { resize: vertical; }
   padding-bottom: 0.8mm; margin-top: 4.5mm; margin-bottom: 2mm; color: #000;
   break-after: avoid; page-break-after: avoid;
 }
-.pdf-canvas h3 {
-  font-size: 10pt; font-weight: 700;
-  margin-top: 2.5mm; margin-bottom: 0.5mm; color: #111;
-  break-after: avoid; page-break-after: avoid;
+.pdf-canvas.cv-single-page h2 {
+  font-size: 9pt;
+  margin-top: 3mm;
+  margin-bottom: 1.5mm;
+  padding-bottom: 0.5mm;
 }
+
+.pdf-canvas .cv-h3-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 2.5mm;
+  margin-bottom: 0.8mm;
+  font-weight: 700;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.pdf-canvas.cv-single-page .cv-h3-row {
+  margin-top: 1.5mm;
+  margin-bottom: 0.5mm;
+}
+.pdf-canvas .cv-h3-left {
+  font-size: 10pt;
+  font-weight: 700;
+  color: #111;
+}
+.pdf-canvas.cv-single-page .cv-h3-left {
+  font-size: 9pt;
+}
+.pdf-canvas .cv-h3-right {
+  font-size: 10pt;
+  font-weight: 700;
+  color: #111;
+  text-align: right;
+}
+.pdf-canvas.cv-single-page .cv-h3-right {
+  font-size: 9pt;
+}
+
 .pdf-canvas p  { margin-bottom: 1mm; font-size: 10pt; break-inside: avoid; page-break-inside: avoid; }
+.pdf-canvas.cv-single-page p { margin-bottom: 0.5mm; font-size: 9pt; }
+
 .pdf-canvas ul { padding-left: 4mm; margin-bottom: 1.5mm; break-inside: avoid; page-break-inside: avoid; }
+.pdf-canvas.cv-single-page ul { margin-bottom: 1mm; }
+
 .pdf-canvas li { margin-bottom: 0.8mm; font-size: 9.5pt; list-style: disc; break-inside: avoid; page-break-inside: avoid; }
+.pdf-canvas.cv-single-page li { margin-bottom: 0.3mm; font-size: 9pt; }
+
 .pdf-canvas strong { font-weight: 700; }
 .pdf-canvas em { font-style: italic; }
 .pdf-canvas hr { border: none; border-top: 0.5px solid #aaa; margin: 2mm 0; break-inside: avoid; }

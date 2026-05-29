@@ -642,17 +642,24 @@ export default function Home() {
       font-family:${selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif"};
       font-size:11pt;line-height:1.5;
       color:#111;background:#fff;
+      padding: 20mm 25mm;
     }
     p{margin-bottom:4mm;}
     h1, h2, h3, h4{
       margin-bottom:4mm;font-family:${selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif"};
     }
     h1{font-size:18pt;text-align:center;text-transform:uppercase;margin-bottom:6mm;}
-    @page{margin:20mm 25mm;size:A4}
-    @media print{body{padding:0}}
+    @page{margin:0;size:A4}
+    @media print{
+      body{
+        padding: 20mm 25mm;
+        margin: 0;
+        background: #fff;
+      }
+    }
   </style>
 </head>
-<body style="padding:0 20mm">
+<body style="background: #fff;">
 ${bodyHtml}
 <script>
   window.onload=function(){setTimeout(function(){window.print()},400)};
@@ -718,44 +725,114 @@ ${bodyHtml}
         font-family:${bodyFont};
         font-size:${bodyFontSize};line-height:${lineGap};
         color:#111;background:#fff;
+        padding: ${pageMargin};
       }
-      h1{
+      .cv-header {
+        text-align: center;
+        margin-bottom: 2mm;
+      }
+      .cv-header h1 {
         font-family:${h1Font};
-        font-size:${h1FontSize};font-weight:700;
-        text-align:center;text-transform:uppercase;
-        letter-spacing:2px;margin-bottom:1mm;
-        break-after:avoid;page-break-after:avoid;
+        font-size:${h1FontSize};
+        font-weight:700;
+        text-transform:uppercase;
+        letter-spacing:1.5px;
+        margin-bottom:0.5mm;
       }
-      /* Subtitle line (job title) — first <p> after h1 */
-      h1 + p{
-        text-align:center;font-size:10pt;
-        font-weight:700;text-transform:uppercase;
-        letter-spacing:1px;margin-bottom:1mm;
-        break-inside:avoid;page-break-inside:avoid;
+      .cv-header p:first-of-type {
+        font-size:${force1Page ? "9.5pt" : "10.5pt"};
+        font-weight:700;
+        text-transform:uppercase;
+        letter-spacing:1px;
+        margin-bottom:${force1Page ? "1mm" : "1.5mm"};
+        color:#111;
+      }
+      .cv-header p {
+        font-size:${force1Page ? "8.5pt" : "9.5pt"};
+        color:#333;
+        margin-bottom:0.5mm;
+        line-height:1.3;
+      }
+      .cv-header a {
+        color:#333;
+        text-decoration:underline;
+      }
+      .cv-availability-box {
+        text-align: center;
+        font-size: ${force1Page ? "8pt" : "8.5pt"};
+        font-style: italic;
+        color: #444;
+        background: #f1f5f9;
+        padding: ${force1Page ? "0.8mm 2.5mm" : "1.2mm 3mm"};
+        margin: ${force1Page ? "1mm auto 1.5mm auto" : "1.5mm auto 2mm auto"};
+        border-radius: 3px;
+        width: fit-content;
+        max-width: 100%;
+        break-inside: avoid;
       }
       h2{
         font-family:${h1Font};
         font-size:${h2FontSize};font-weight:700;
         text-transform:uppercase;letter-spacing:1.5px;
         border-bottom:1.5px solid #111;
-        padding-bottom:0.8mm;margin-top:${spacingTop};margin-bottom:2mm;
+        padding-bottom:0.5mm;
+        margin-top:${spacingTop};
+        margin-bottom:${force1Page ? "1.5mm" : "2mm"};
         break-after:avoid;page-break-after:avoid;
       }
-      h3{
-        font-family:${bodyFont};
-        font-size:${h3FontSize};font-weight:700;
-        margin-top:2.5mm;margin-bottom:0.5mm;
-        break-after:avoid;page-break-after:avoid;
+      .cv-h3-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-top: ${force1Page ? "1.5mm" : "2.5mm"};
+        margin-bottom: ${force1Page ? "0.5mm" : "0.8mm"};
+        font-weight: 700;
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
-      p{margin-bottom:1mm;font-size:${bodyFontSize};break-inside:avoid;page-break-inside:avoid;}
-      ul{padding-left:4mm;margin-bottom:1.5mm;break-inside:avoid;page-break-inside:avoid;}
-      li{margin-bottom:0.8mm;font-size:${liFontSize};break-inside:avoid;page-break-inside:avoid;}
+      .cv-h3-left {
+        font-size: ${h3FontSize};
+        font-weight: 700;
+        color: #111;
+      }
+      .cv-h3-right {
+        font-size: ${h3FontSize};
+        font-weight: 700;
+        color: #111;
+        text-align: right;
+      }
+      p{
+        margin-bottom:${force1Page ? "0.5mm" : "1mm"};
+        font-size:${bodyFontSize};
+        break-inside:avoid;page-break-inside:avoid;
+      }
+      ul{
+        padding-left:4mm;
+        margin-bottom:${force1Page ? "1mm" : "1.5mm"};
+        break-inside:avoid;page-break-inside:avoid;
+      }
+      li{
+        margin-bottom:${force1Page ? "0.3mm" : "0.8mm"};
+        font-size:${liFontSize};
+        break-inside:avoid;page-break-inside:avoid;
+      }
       strong{font-weight:700}
       em{font-style:italic}
       hr{border:none;border-top:0.5px solid #aaa;margin:2mm 0;break-inside:avoid;}
       a{color:#111;text-decoration:underline}
-      @page{margin:${pageMargin};size:A4}
-      @media print{body{padding:0}}
+      
+      /* Disable default browser headers and footers */
+      @page {
+        margin: 0;
+        size: A4;
+      }
+      @media print {
+        body {
+          padding: ${pageMargin};
+          margin: 0;
+          background: #fff;
+        }
+      }
     `;
   };
 
@@ -793,9 +870,52 @@ ${bodyHtml}
   };
 
   const renderCV = (md: string): string => {
-    // Configure marked for clean output
     marked.setOptions({ gfm: true, breaks: true });
-    return marked.parse(md) as string;
+    let html = marked.parse(md) as string;
+    
+    // Wrap header (everything before first h2) in a cv-header div
+    const h2Index = html.indexOf("<h2");
+    if (h2Index !== -1) {
+      html = `<div class="cv-header">${html.substring(0, h2Index)}</div>${html.substring(h2Index)}`;
+    }
+    
+    // Format availability box
+    html = html.replace(/<p>Availability:\s*(.*?)<\/p>/gi, '<div class="cv-availability-box">Availability: $1</div>');
+    
+    // Format h3 headers with pipes for left-right alignment
+    const isRightAlignedInfo = (str: string) => {
+      const s = str.toLowerCase();
+      return /\b(19|20)\d{2}\b/g.test(s) || // contains year
+             s.includes("present") ||
+             s.includes("gpa") ||
+             s.includes("ipk") ||
+             s.includes("http") ||
+             s.includes("www.") ||
+             s.includes(".com") ||
+             s.includes(".org") ||
+             s.includes(".me") ||
+             s.includes(".net") ||
+             s.includes("linkedin") ||
+             s.includes("github");
+    };
+
+    html = html.replace(/<h3>(.*?)<\/h3>/gi, (match, content) => {
+      const decodedContent = content.replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/&mdash;/g, '—');
+      const parts = decodedContent.split('|').map((p: string) => p.trim());
+      if (parts.length >= 2) {
+        const lastPart = parts[parts.length - 1];
+        if (isRightAlignedInfo(lastPart)) {
+          const mainInfo = parts.slice(0, parts.length - 1).join(' | ');
+          return `<div class="cv-h3-row">
+            <span class="cv-h3-left">${mainInfo}</span>
+            <span class="cv-h3-right">${lastPart}</span>
+          </div>`;
+        }
+      }
+      return match;
+    });
+
+    return html;
   };
 
   const handleDownloadPDF = () => {
@@ -811,7 +931,7 @@ ${bodyHtml}
       return;
     }
 
-    const fileName = pdfFile ? pdfFile.name.replace(".pdf", "") : "Optimized_CV";
+    const fileName = pdfFile ? `${pdfFile.name.replace(".pdf", "")}_Optimized` : "Optimized_CV";
     const bodyHtml = renderCV(content);
 
     printWindow.document.write(`<!DOCTYPE html>
@@ -821,7 +941,7 @@ ${bodyHtml}
   <title>${fileName}</title>
   <style>${getCVStyles(selectedTemplate, forceSinglePage)}</style>
 </head>
-<body style="padding: ${forceSinglePage ? "0 10mm" : (selectedTemplate === "compact" ? "0 12mm" : "0 18mm")}">
+<body style="background: #fff;">
 ${bodyHtml}
 <script>
   window.onload=function(){setTimeout(function(){window.print()},400)};
@@ -1538,12 +1658,21 @@ ${bodyHtml}
                 </AnimatePresence>
 
                 {activeTab === "raw" ? (
-                  <textarea
-                    value={editableCV}
-                    onChange={(e) => setEditableCV(e.target.value)}
-                    className="w-full h-full min-h-[600px] p-5 text-xs leading-relaxed focus:outline-none"
-                    style={{ background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', border: 'none' }}
-                  />
+                  <div className="flex flex-col w-full min-h-[600px]">
+                    <div className="no-print p-3 border-b text-[11px] flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-medium bg-indigo-50/40 text-indigo-800 border-[var(--border)]">
+                      <span className="flex items-center gap-1.5">
+                        <MagicWand weight="bold" className="w-3.5 h-3.5 shrink-0 text-indigo-600" />
+                        <span><strong>CV Builder Mode:</strong> Anda bisa mengedit, menambah, atau menempelkan (paste) pengalaman baru di editor Markdown ini.</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase" style={{ fontFamily: 'var(--font-jakarta)' }}>Markdown Editor</span>
+                    </div>
+                    <textarea
+                      value={editableCV}
+                      onChange={(e) => setEditableCV(e.target.value)}
+                      className="w-full flex-1 p-5 text-xs leading-relaxed focus:outline-none resize-none"
+                      style={{ background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', border: 'none' }}
+                    />
+                  </div>
                 ) : activeTab === "diff" ? (
                   <div className="w-full min-h-[600px] grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50">
                     <div className="flex flex-col gap-2 bg-white rounded-xl p-4 border border-[var(--border)]">
@@ -1704,7 +1833,7 @@ ${bodyHtml}
                     {currentStep === 3 && (
                       <div className="no-print p-3 border-b text-[11px] flex items-center gap-2 font-medium" style={{ background: 'rgba(79,70,229,0.03)', borderColor: 'rgba(79,70,229,0.1)', color: 'var(--accent)' }}>
                         <PencilSimple weight="bold" className="w-3 h-3 shrink-0" />
-                        Formatted preview — switch to Raw Editor to make changes.
+                        <span>Pratinjau Format — Pindah ke <strong>Raw Editor</strong> untuk mengedit, menambah, atau menempelkan pengalaman baru.</span>
                       </div>
                     )}
                     {isMultiPage && (
@@ -1773,7 +1902,7 @@ ${bodyHtml}
                                 {/* Column-flow text overlay */}
                                 <div
                                   ref={pdfPreviewRef}
-                                  className="pdf-canvas"
+                                  className={`pdf-canvas cv-template-${selectedTemplate} ${forceSinglePage ? "cv-single-page" : ""}`}
                                   style={{
                                     position: "absolute",
                                     top: 0,
@@ -1951,14 +2080,15 @@ ${bodyHtml}
                   >
                     <ArrowClockwise weight="bold" className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Re-scan / Get New Score
                   </button>
-                  {step1Result && (step1Result.missingKeywords.length > 0 || step1Result.redFlags.length > 0) && (
-                    <button onClick={handleReoptimize} disabled={loading}
-                      className="w-full py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-2 border border-indigo-600/20 bg-indigo-50 hover:bg-indigo-100/60 text-indigo-700 disabled:opacity-50 animate-pulse-subtle"
-                      style={{ fontFamily: 'var(--font-jakarta)' }}
-                    >
-                      <MagicWand weight="bold" className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Optimize Again / Refine Resume
-                    </button>
-                  )}
+                  <button onClick={handleReoptimize} disabled={loading}
+                    className="w-full py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-2 border border-indigo-600/20 bg-indigo-50 hover:bg-indigo-100/60 text-indigo-700 disabled:opacity-50 animate-pulse-subtle"
+                    style={{ fontFamily: 'var(--font-jakarta)' }}
+                  >
+                    <MagicWand weight="bold" className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Re-optimize / Refine Added Text
+                  </button>
+                  <p className="text-[9px] text-[var(--text-muted)] font-medium leading-relaxed text-center" style={{ fontFamily: 'var(--font-jakarta)' }}>
+                    Jika Anda mengedit/menambah pengalaman di <strong>Raw Editor</strong>, klik <strong>Re-scan</strong> untuk menilai ulang skor ATS atau <strong>Re-optimize</strong> untuk memformat penulisan Anda dengan AI.
+                  </p>
                   <button onClick={handleDownloadPDF}
                     className="w-full py-3 rounded-xl text-sm font-bold cursor-pointer transition-all flex items-center justify-center gap-2"
                     style={{ background: 'linear-gradient(135deg,#059669,#10b981)', color: '#fff', boxShadow: '0 8px 24px rgba(5,150,105,0.15)', fontFamily: 'var(--font-jakarta)' }}

@@ -133,13 +133,14 @@ Rules:
 - Remove these red flags: ${JSON.stringify(redFlags)}
 - Keep role titles and company names intact. Do NOT invent new companies, roles, or past projects.
 - CRITICAL WARNING: The Job Description is the target company and role they are applying for. Do NOT add the target company (e.g. PT Cartenz Technology Indonesia) or target role (e.g. Fullstack Developer at target company) to the candidate's work experience. The candidate has NEVER worked there.
+- CRITICAL FORMAT RULE: If the Original CV has bracketed prefix categories at the beginning of bullet points (e.g., "[Backend Architecture & Scalability]"), you MUST preserve those bracketed prefix categories at the start of each rewritten Google XYZ bullet point.
 ${langInstruction}
 - Use this Markdown structure:
 
 ## WORK EXPERIENCE
 ### [Job Title] | [Company] | [Date Range]
-- Accomplished X as measured by Y, by doing Z
-- Accomplished X as measured by Y, by doing Z
+- [Category Name] Accomplished X as measured by Y, by doing Z
+- [Category Name] Accomplished X as measured by Y, by doing Z
 
 ## PROJECTS
 ### [Project Name] | [Tech Stack]
@@ -183,37 +184,46 @@ Output ONLY the Experience and Projects sections in Markdown. Nothing else.`;
         userPrompt = `Compile the FINAL complete ATS-optimized 1-page resume using the rewritten experience below and the original CV data. Follow the structure of a Software Engineer / Programmer resume:
 
 STRICT FORMAT RULES — follow exactly:
-1. Name as H1 centered, job title below name, contact info on one line
-2. Section headers as H2 ALL-CAPS (e.g., ## WORK EXPERIENCE)
-3. Bullet points using "- " prefix, Google XYZ formula for work experience/projects
-4. Max 1 page when printed — be ruthlessly concise
-5. Output ONLY clean Markdown, no explanations, no preamble
-6. CRITICAL WARNING: The Job Description is the target company and role the candidate is applying for. Do NOT add the target company (e.g. PT Cartenz Technology Indonesia) or target role to the candidate's work experience. The candidate has NEVER worked there. Only include the candidate's original work experiences and companies from the Original CV data.
+1. Name centered as H1.
+2. Job Title centered below the name. Use the exact job title from the candidate's original CV under their name (e.g., "PHP BACK END DEVELOPER" or "FULLSTACK DEVELOPER"). Do NOT generalize it to "SOFTWARE ENGINEER" if the original title is more specific. Keep it in UPPERCASE.
+3. Center the contact details. Split them onto 1 or 2 lines to make it look clean:
+   Line 1: [City, State/Province] | [Email] | [Phone Number]
+   Line 2: [Personal Website/Portfolio] | [LinkedIn] | [GitHub]
+   CRITICAL: Keep all email addresses and links in lowercase (e.g., 'darrelrangga@gmail.com' and 'darellrangga.me'). Do NOT capitalize them.
+4. If there is an availability status line in the original CV (e.g., "Availability: Independent Contractor / Fully Remote (Ready to collaborate with distributed, international teams)"), you MUST include it verbatim as a centered paragraph directly below the contact details, styled as:
+   Availability: [Details]
+5. Section headers as H2 ALL-CAPS (e.g., ## WORK EXPERIENCE)
+6. Work experience bullet points using "- " prefix, Google XYZ formula, and MUST keep any bracketed category prefix at the start of each bullet point (e.g., "[Backend Architecture & Scalability] Engineered...") if they exist.
+7. For projects, format the header as: "### [Project Name] | [Tech Stack]" or "### [Project Name] | [Tech Stack] | [Link]". If a project has a "Focus:" line in the original CV, preserve it verbatim as a separate line right below the title in italics, e.g. *Focus: PHP (Laravel 12), MySQL Optimization, Design Patterns*.
+8. Max 1 page when printed — be ruthlessly concise.
+9. Output ONLY clean Markdown, no explanations, no preamble.
+10. CRITICAL WARNING: The Job Description is the target company and role the candidate is applying for. Do NOT add the target company (e.g. PT Cartenz Technology Indonesia) or target role to the candidate's work experience. The candidate has NEVER worked there. Only include the candidate's original work experiences and companies from the Original CV data.
 
 ${languageGuidelines}
 
 REQUIRED SECTIONS IN ORDER:
 # [NAMA LENGKAP / FULL NAME]
-[Job Title / Peran Pekerjaan]
-[Kota, Provinsi] | [Email] | [Nomor Telepon] | [LinkedIn URL] | [GitHub URL] | [Portfolio URL]
+[Job Title]
+[Kota, Provinsi] | [Email] | [Nomor Telepon]
+[LinkedIn URL] | [GitHub URL] | [Portfolio URL]
+Availability: [If exists]
 
 ## [PROFESSIONAL SUMMARY / SUMMARY]
 Detail-oriented Software Engineer with experience in building, testing, and deploying full-stack web applications. Proficient in key programming languages and modern frameworks. Strong track record of optimizing database performance, developing RESTful APIs, and delivering scalable software solutions.
 
 ## [TECHNICAL SKILLS / SKILLS]
-* **Languages:** [List languages e.g., JavaScript/TypeScript, Python, PHP, SQL, HTML/CSS]
-* **Frameworks & Libraries:** [List frameworks e.g., React.js, Next.js, Node.js, Express, Laravel]
-* **Databases:** [List databases e.g., MySQL, PostgreSQL, MongoDB, Redis]
-* **Tools & DevOps:** [List tools e.g., Git/GitHub, Docker, AWS (S3, EC2), Vercel, Postman]
-* **Methodologies:** [List methods e.g., Agile/Scrum, CI/CD, REST API Design]
+Format as a bulleted list of 4-5 items. Group skills logically and professionally. Use custom professional categories that reflect the candidate's actual strengths (e.g., "Backend & API", "Database Optimization", "Code Quality & Evaluation", "Frontend & Mobile", "Tools & DevOps") rather than just generic "Languages", "Frameworks".
+Format each item as:
+* **Category Name:** Skill 1, Skill 2, Skill 3, etc.
 
 ## [WORK EXPERIENCE / PENGALAMAN KERJA]
 ### [Job Title] | [Company] | [Dates]
-- [XYZ bullet]
-- [XYZ bullet]
+- [Category] [XYZ bullet]
+- [Category] [XYZ bullet]
 
 ## [PROJECTS / PROYEK]
 ### [Project Name] | [Tech Stack] | [GitHub / Live URL]
+*Focus: [Tech focus if exists]*
 - [XYZ bullet describing what was built, measuring speed/metrics, and tools used]
 - [XYZ bullet]
 
@@ -238,12 +248,20 @@ Output the complete final resume in Markdown NOW:`;
         userPrompt = `Compile the FINAL complete ATS-optimized 1-page resume using the rewritten experience below and the original CV data. Follow the general professional resume template:
 
 STRICT FORMAT RULES — follow exactly:
-1. Name as H1 centered, job title below name, contact info on one line
-2. Section headers as H2 ALL-CAPS (e.g., ## WORK EXPERIENCE)
-3. Bullet points using "- " prefix, Google XYZ formula for work experience
-4. Max 1 page when printed — be ruthlessly concise
-5. Output ONLY clean Markdown, no explanations, no preamble
-6. CRITICAL WARNING: The Job Description is the target company and role the candidate is applying for. Do NOT add the target company (e.g. PT Cartenz Technology Indonesia) or target role to the candidate's work experience. The candidate has NEVER worked there. Only include the candidate's original work experiences and companies from the Original CV data.
+1. Name centered as H1.
+2. Job Title centered below the name. Use the exact job title from the candidate's original CV under their name. Keep it in UPPERCASE.
+3. Center the contact details. Split them onto 1 or 2 lines to make it look clean:
+   Line 1: [City, State/Province] | [Email] | [Phone Number]
+   Line 2: [Personal Website/Portfolio] | [LinkedIn] | [GitHub]
+   CRITICAL: Keep all email addresses and links in lowercase. Do NOT capitalize them.
+4. If there is an availability status line in the original CV (e.g., "Availability: ..."), you MUST include it verbatim as a centered paragraph directly below the contact details, styled as:
+   Availability: [Details]
+5. Section headers as H2 ALL-CAPS (e.g., ## WORK EXPERIENCE)
+6. Work experience bullet points using "- " prefix, Google XYZ formula, and MUST keep any bracketed category prefix at the start of each bullet point if they exist.
+7. For projects, format the header as: "### [Project Name] | [Tech Stack]" or "### [Project Name] | [Tech Stack] | [Link]". If a project has a "Focus:" line in the original CV, preserve it verbatim as a separate line right below the title in italics.
+8. Max 1 page when printed — be ruthlessly concise.
+9. Output ONLY clean Markdown, no explanations, no preamble.
+10. CRITICAL WARNING: The Job Description is the target company and role the candidate is applying for. Do NOT add the target company (e.g. PT Cartenz Technology Indonesia) or target role to the candidate's work experience. The candidate has NEVER worked there. Only include the candidate's original work experiences and companies from the Original CV data.
 
 ${languageGuidelines}
 
@@ -256,7 +274,9 @@ SKILLS SECTION FORMATTING:
 REQUIRED SECTIONS IN ORDER:
 # [FULL NAME]
 [Job Title]
-[City, Country] | [email] | [phone] | [website/LinkedIn/GitHub]
+[City, Country] | [email] | [phone]
+[website/LinkedIn/GitHub]
+Availability: [If exists]
 
 ## [PROFESSIONAL SUMMARY / TENTANG SAYA]
 2-3 punchy lines. ATS keywords front-loaded. Quantify impact.
