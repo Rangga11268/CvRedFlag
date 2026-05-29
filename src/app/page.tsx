@@ -35,6 +35,8 @@ interface AnalysisResult {
   score: number;
   missingKeywords: string[];
   redFlags: string[];
+  resolvedKeywords?: string[];
+  resolvedRedFlags?: string[];
 }
 
 interface Toast {
@@ -181,6 +183,11 @@ export default function Home() {
 
     try {
       const payload: any = { step: stepNum, cvText: textToAnalyze, jobDescription };
+      if (stepNum === 1 && customCvText) {
+        payload.isReanalysis = true;
+        payload.originalRedFlags = step1Result?.redFlags || [];
+        payload.originalKeywords = step1Result?.missingKeywords || [];
+      }
       if (stepNum === 2 && step1Result) {
         payload.missingKeywords = step1Result.missingKeywords;
         payload.redFlags = step1Result.redFlags;
@@ -220,6 +227,86 @@ export default function Home() {
         showToast("AI Rate Limit reached. Please wait 10-15 seconds and try again.", "error");
       } else {
         showToast(err.message || "Error processing data.", "error");
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMsg("");
+    }
+  };
+
+  const handleReoptimize = async () => {
+    if (!editableCV || !step1Result) {
+      showToast("No resume text or scan results to refine.", "info");
+      return;
+    }
+
+    setLoading(true);
+    setLoadingMsg("Refining experience bullets...");
+    try {
+      // Step 2 refinement: Send the current editable CV as text to rewrite
+      const payload2 = {
+        step: 2,
+        cvText: editableCV,
+        jobDescription,
+        missingKeywords: step1Result.missingKeywords,
+        redFlags: step1Result.redFlags
+      };
+
+      const res2 = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload2),
+      });
+      if (!res2.ok) throw new Error((await res2.json()).error || "Failed Step 2 refinement");
+      const data2 = await res2.json();
+      const newStep2Result = data2.result;
+      setStep2Result(newStep2Result);
+
+      // Step 3 layout compilation
+      setLoadingMsg("Compiling refined ATS resume...");
+      const payload3 = {
+        step: 3,
+        cvText: editableCV,
+        jobDescription,
+        rewrittenExperience: newStep2Result
+      };
+      const res3 = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload3),
+      });
+      if (!res3.ok) throw new Error((await res3.json()).error || "Failed Step 3 refinement");
+      const data3 = await res3.json();
+      setStep3Result(data3.result);
+      setEditableCV(data3.result);
+
+      // Re-evaluate the new score on the refined CV
+      setLoadingMsg("Re-evaluating refined score...");
+      const payload1 = {
+        step: 1,
+        cvText: data3.result,
+        jobDescription,
+        isReanalysis: true,
+        originalRedFlags: step1Result.redFlags,
+        originalKeywords: step1Result.missingKeywords
+      };
+      const res1 = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload1),
+      });
+      if (res1.ok) {
+        const data1 = await res1.json();
+        setStep1Result(data1);
+        showToast(`Refinement complete! Score: ${data1.score}%`, "success");
+      } else {
+        showToast("Refinement complete, but score evaluation failed.", "info");
+      }
+    } catch (err: any) {
+      if (err.message.includes("429")) {
+        showToast("AI Rate Limit reached during refinement. Please wait 10-15 seconds and try again.", "error");
+      } else {
+        showToast(err.message || "Error refining CV", "error");
       }
     } finally {
       setLoading(false);
@@ -668,17 +755,29 @@ ${bodyHtml}
                   <div className="flex items-center gap-2">
                     <Tag weight="fill" className="w-3.5 h-3.5 text-indigo-600" />
                     <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-jakarta)' }}>Missing Keywords</span>
-                    <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>{step1Result.missingKeywords.length}</span>
+                    <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>
+                      {step1Result.missingKeywords.length}
+                    </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
-                    {step1Result.missingKeywords.length > 0 ? (
-                      step1Result.missingKeywords.map((kw, i) => (
-                        <motion.span key={i} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.03 }}
-                          className="px-2.5 py-1 text-[11px] rounded-lg font-semibold"
-                          style={{ background: 'var(--accent-glow)', border: '1px solid rgba(79,70,229,0.12)', color: 'var(--text-secondary)' }}
-                        >{kw}</motion.span>
-                      ))
-                    ) : (
+                    {step1Result.missingKeywords.map((kw, i) => (
+                      <motion.span key={`missing-${i}`} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.02 }}
+                        className="px-2.5 py-1 text-[11px] rounded-lg font-semibold"
+                        style={{ background: 'var(--accent-glow)', border: '1px solid rgba(79,70,229,0.12)', color: 'var(--text-secondary)' }}
+                      >
+                        {kw}
+                      </motion.span>
+                    ))}
+                    {step1Result.resolvedKeywords?.map((kw, i) => (
+                      <motion.span key={`resolved-${i}`} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                        className="px-2.5 py-1 text-[11px] rounded-lg font-semibold flex items-center gap-1"
+                        style={{ background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.2)', color: '#047857' }}
+                      >
+                        <CheckCircle weight="fill" className="w-3 h-3 text-emerald-600 shrink-0" />
+                        <span className="line-through opacity-75">{kw}</span>
+                      </motion.span>
+                    ))}
+                    {step1Result.missingKeywords.length === 0 && (!step1Result.resolvedKeywords || step1Result.resolvedKeywords.length === 0) && (
                       <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>No missing keywords!</span>
                     )}
                   </div>
@@ -690,17 +789,29 @@ ${bodyHtml}
                   <div className="flex items-center gap-2">
                     <Warning weight="fill" className="w-3.5 h-3.5 text-red-600" />
                     <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--danger)', fontFamily: 'var(--font-jakarta)' }}>Red Flags</span>
-                    <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: 'var(--danger-glow)', color: 'var(--danger)' }}>{step1Result.redFlags.length}</span>
+                    <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: 'var(--danger-glow)', color: 'var(--danger)' }}>
+                      {step1Result.redFlags.length}
+                    </span>
                   </div>
                   <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
-                    {step1Result.redFlags.length > 0 ? (
-                      step1Result.redFlags.map((flag, i) => (
-                        <div key={i} className="flex items-start gap-2.5 p-3 rounded-lg text-xs" style={{ background: 'var(--danger-glow)', border: '1px solid rgba(220,38,38,0.06)' }}>
-                          <div className="w-4 h-4 rounded-full flex items-center justify-center font-bold text-[9px] shrink-0" style={{ background: 'rgba(220,38,38,0.1)', color: 'var(--danger)' }}>{i + 1}</div>
-                          <p className="leading-relaxed font-medium" style={{ color: 'var(--text-secondary)' }}>{flag}</p>
+                    {step1Result.redFlags.map((flag, i) => (
+                      <div key={`flag-${i}`} className="flex items-start gap-2.5 p-3 rounded-lg text-xs" style={{ background: 'var(--danger-glow)', border: '1px solid rgba(220,38,38,0.06)' }}>
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center font-bold text-[9px] shrink-0" style={{ background: 'rgba(220,38,38,0.1)', color: 'var(--danger)' }}>{i + 1}</div>
+                        <p className="leading-relaxed font-medium" style={{ color: 'var(--text-secondary)' }}>{flag}</p>
+                      </div>
+                    ))}
+                    {step1Result.resolvedRedFlags?.map((flag, i) => (
+                      <div key={`resolved-${i}`} className="flex items-start gap-2.5 p-3 rounded-lg text-xs" style={{ background: 'rgba(5,150,105,0.04)', border: '1px solid rgba(5,150,105,0.15)' }}>
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center font-bold text-[9px] shrink-0" style={{ background: 'rgba(5,150,105,0.1)', color: 'var(--success)' }}>
+                          <CheckCircle weight="fill" className="w-3.5 h-3.5" />
                         </div>
-                      ))
-                    ) : (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-wider">Resolved</span>
+                          <p className="leading-relaxed font-medium line-through text-slate-400">{flag}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {step1Result.redFlags.length === 0 && (!step1Result.resolvedRedFlags || step1Result.resolvedRedFlags.length === 0) && (
                       <div className="p-3 rounded-lg text-xs flex items-center gap-1.5" style={{ background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.15)', color: 'var(--success)' }}>
                         <CheckCircle weight="fill" className="w-3.5 h-3.5" /> Clean CV!
                       </div>
@@ -912,6 +1023,14 @@ ${bodyHtml}
                   >
                     <ArrowClockwise weight="bold" className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Re-scan / Get New Score
                   </button>
+                  {step1Result && (step1Result.missingKeywords.length > 0 || step1Result.redFlags.length > 0) && (
+                    <button onClick={handleReoptimize} disabled={loading}
+                      className="w-full py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-2 border border-indigo-600/20 bg-indigo-50 hover:bg-indigo-100/60 text-indigo-700 disabled:opacity-50 animate-pulse-subtle"
+                      style={{ fontFamily: 'var(--font-jakarta)' }}
+                    >
+                      <MagicWand weight="bold" className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Optimize Again / Refine Resume
+                    </button>
+                  )}
                   <button onClick={handleDownloadPDF}
                     className="w-full py-3 rounded-xl text-sm font-bold cursor-pointer transition-all flex items-center justify-center gap-2"
                     style={{ background: 'linear-gradient(135deg,#059669,#10b981)', color: '#fff', boxShadow: '0 8px 24px rgba(5,150,105,0.15)', fontFamily: 'var(--font-jakarta)' }}

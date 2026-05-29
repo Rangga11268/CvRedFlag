@@ -4,7 +4,18 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const { step, cvText, jobDescription, missingKeywords, redFlags, rewrittenExperience, openrouterApiKey } = await req.json();
+    const { 
+      step, 
+      cvText, 
+      jobDescription, 
+      missingKeywords, 
+      redFlags, 
+      rewrittenExperience, 
+      openrouterApiKey, 
+      isReanalysis, 
+      originalRedFlags, 
+      originalKeywords 
+    } = await req.json();
 
     // Determine API Keys
     const groqApiKey = process.env.GROQ_API_KEY;
@@ -21,8 +32,33 @@ export async function POST(req: NextRequest) {
     let responseFormat: any = undefined;
 
     if (step === 1) {
-      systemPrompt = "You are a senior ATS analyst and recruiter. Analyze the candidate's CV against the job description. Respond ONLY in raw JSON — no markdown, no code blocks, no extra text.";
-      userPrompt = `Act as a senior recruiter for this exact company. Analyze the resume against the job description and return ONLY this JSON:
+      if (isReanalysis) {
+        systemPrompt = "You are a senior ATS recruiter and analyst. Verify if the optimized CV has successfully resolved the previous red flags and incorporated the missing keywords. Respond ONLY in raw JSON — no markdown, no code blocks, no extra text.";
+        userPrompt = `Analyze the optimized CV against the target Job Description. 
+Check if the previously identified red flags have been successfully removed, and if the missing keywords are now successfully integrated.
+Return ONLY this JSON format:
+{
+  "score": <number 0-100, should be significantly higher if keywords were added and red flags resolved>,
+  "missingKeywords": ["any keywords STILL missing"],
+  "redFlags": ["any red flags STILL present"],
+  "resolvedKeywords": ["keywords from the original list that are now successfully added"],
+  "resolvedRedFlags": ["red flags from the original list that are now successfully resolved/removed"]
+}
+
+Target Job Description:
+${jobDescription}
+
+Optimized CV:
+${cvText}
+
+Original Red Flags to verify:
+${JSON.stringify(originalRedFlags)}
+
+Original Missing Keywords to verify:
+${JSON.stringify(originalKeywords)}`;
+      } else {
+        systemPrompt = "You are a senior ATS analyst and recruiter. Analyze the candidate's CV against the job description. Respond ONLY in raw JSON — no markdown, no code blocks, no extra text.";
+        userPrompt = `Act as a senior recruiter for this exact company. Analyze the resume against the job description and return ONLY this JSON:
 {
   "score": <number 0-100>,
   "missingKeywords": ["up to 5 specific skills/tools missing from the CV"],
@@ -34,6 +70,7 @@ ${jobDescription}
 
 Resume/CV:
 ${cvText}`;
+      }
       responseFormat = { type: "json_object" };
 
     } else if (step === 2) {
