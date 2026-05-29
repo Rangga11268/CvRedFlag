@@ -475,6 +475,94 @@ export default function Home() {
     }
   };
 
+  const handleRecompile = async (targetCategory?: typeof jobCategory, targetLanguage?: typeof cvLanguage) => {
+    const category = targetCategory || jobCategory;
+    const language = targetLanguage || cvLanguage;
+
+    if (!cvText || !jobDescription || !step1Result) {
+      showToast("Cannot update settings without parsed CV text or job description.", "info");
+      return;
+    }
+
+    setLoading(true);
+    setLoadingMsg("Applying new templates & translating...");
+    try {
+      // Step 2 refinement starting from original text
+      const payload2 = {
+        step: 2,
+        cvText,
+        jobDescription,
+        missingKeywords: step1Result.missingKeywords,
+        redFlags: step1Result.redFlags,
+        cvLanguage: language,
+        jobCategory: category
+      };
+
+      const res2 = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload2),
+      });
+      if (!res2.ok) throw new Error((await res2.json()).error || "Failed Step 2 re-evaluation");
+      const data2 = await res2.json();
+      const newStep2Result = data2.result;
+      setStep2Result(newStep2Result);
+
+      // Step 3 compilation
+      setLoadingMsg("Re-compiling ATS CV structure...");
+      const payload3 = {
+        step: 3,
+        cvText,
+        jobDescription,
+        rewrittenExperience: newStep2Result,
+        jobCategory: category,
+        cvLanguage: language
+      };
+      const res3 = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload3),
+      });
+      if (!res3.ok) throw new Error((await res3.json()).error || "Failed Step 3 re-evaluation");
+      const data3 = await res3.json();
+      setStep3Result(data3.result);
+      setEditableCV(data3.result || formatRawTextToMarkdown(cvText));
+
+      // Re-evaluate the new score on the new CV
+      setLoadingMsg("Evaluating updated CV score...");
+      const payload1 = {
+        step: 1,
+        cvText: data3.result,
+        jobDescription,
+        isReanalysis: true,
+        originalRedFlags: step1Result.redFlags,
+        originalKeywords: step1Result.missingKeywords
+      };
+      const res1 = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload1),
+      });
+      if (res1.ok) {
+        const data1 = await res1.json();
+        setStep1Result(data1);
+        setScoreHistory((prev) => [...prev, data1.score]);
+        showToast("CV successfully updated and optimized with your new settings!", "success");
+      } else {
+        showToast("CV compiled, but score evaluation failed.", "info");
+      }
+    } catch (err: any) {
+      if (err.message.includes("429")) {
+        showToast("AI Rate Limit reached. Please wait 10-15 seconds and try again.", "error");
+      } else {
+        showToast(err.message || "Error re-compiling CV", "error");
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMsg("");
+    }
+  };
+
   const handleKeywordClick = async (kw: string) => {
     setSelectedKeyword(kw);
     setKeywordSuggestion("");
@@ -1367,7 +1455,13 @@ ${bodyHtml}
                       <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Role:</span>
                       <select
                         value={jobCategory}
-                        onChange={(e) => setJobCategory(e.target.value as any)}
+                        onChange={(e) => {
+                          const val = e.target.value as any;
+                          setJobCategory(val);
+                          if (currentStep === 3) {
+                            handleRecompile(val, cvLanguage);
+                          }
+                        }}
                         className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer border-none p-0 focus:ring-0"
                         style={{ fontFamily: 'var(--font-jakarta)' }}
                       >
@@ -1381,7 +1475,13 @@ ${bodyHtml}
                       <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Bahasa CV:</span>
                       <select
                         value={cvLanguage}
-                        onChange={(e) => setCvLanguage(e.target.value as any)}
+                        onChange={(e) => {
+                          const val = e.target.value as any;
+                          setCvLanguage(val);
+                          if (currentStep === 3) {
+                            handleRecompile(jobCategory, val);
+                          }
+                        }}
                         className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer border-none p-0 focus:ring-0"
                         style={{ fontFamily: 'var(--font-jakarta)' }}
                       >
