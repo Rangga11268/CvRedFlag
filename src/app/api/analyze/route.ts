@@ -131,7 +131,8 @@ Rules:
 - Every bullet MUST use Google XYZ: "Accomplished [X] as measured by [Y], by doing [Z]"
 - Naturally embed these missing keywords: ${JSON.stringify(missingKeywords)}
 - Remove these red flags: ${JSON.stringify(redFlags)}
-- Keep role titles and company names intact
+- Keep role titles and company names intact. Do NOT invent new companies, roles, or past projects.
+- CRITICAL WARNING: The Job Description is the target company and role they are applying for. Do NOT add the target company (e.g. PT Cartenz Technology Indonesia) or target role (e.g. Fullstack Developer at target company) to the candidate's work experience. The candidate has NEVER worked there.
 ${langInstruction}
 - Use this Markdown structure:
 
@@ -187,6 +188,7 @@ STRICT FORMAT RULES — follow exactly:
 3. Bullet points using "- " prefix, Google XYZ formula for work experience/projects
 4. Max 1 page when printed — be ruthlessly concise
 5. Output ONLY clean Markdown, no explanations, no preamble
+6. CRITICAL WARNING: The Job Description is the target company and role the candidate is applying for. Do NOT add the target company (e.g. PT Cartenz Technology Indonesia) or target role to the candidate's work experience. The candidate has NEVER worked there. Only include the candidate's original work experiences and companies from the Original CV data.
 
 ${languageGuidelines}
 
@@ -241,6 +243,7 @@ STRICT FORMAT RULES — follow exactly:
 3. Bullet points using "- " prefix, Google XYZ formula for work experience
 4. Max 1 page when printed — be ruthlessly concise
 5. Output ONLY clean Markdown, no explanations, no preamble
+6. CRITICAL WARNING: The Job Description is the target company and role the candidate is applying for. Do NOT add the target company (e.g. PT Cartenz Technology Indonesia) or target role to the candidate's work experience. The candidate has NEVER worked there. Only include the candidate's original work experiences and companies from the Original CV data.
 
 ${languageGuidelines}
 
