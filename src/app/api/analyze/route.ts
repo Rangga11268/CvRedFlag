@@ -214,9 +214,7 @@ ${jobDescription}`;
     // 1. Try Groq first if GROQ_API_KEY is configured
     if (groqApiKey) {
       const groqModels = [
-        "llama-3.3-70b-specdec",
         "llama-3.3-70b-versatile",
-        "gemma2-9b-it",
         "llama-3.1-8b-instant"
       ];
 

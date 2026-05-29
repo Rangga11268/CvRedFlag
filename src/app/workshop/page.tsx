@@ -325,9 +325,13 @@ export default function Home() {
         showToast("Google XYZ rewrite applied!", "success");
       } else if (stepNum === 3) {
         setStep3Result(data.result);
-        setEditableCV(data.result);
+        setEditableCV(data.result || formatRawTextToMarkdown(cvText));
         setCurrentStep(3);
-        showToast("ATS formatting complete. Ready to export!", "success");
+        if (!data.result) {
+          showToast("AI returned empty formatted CV, using parsed original as fallback.", "info");
+        } else {
+          showToast("ATS formatting complete. Ready to export!", "success");
+        }
       }
     } catch (err: any) {
       if (err.message.includes("429")) {
@@ -419,7 +423,7 @@ export default function Home() {
       if (!res3.ok) throw new Error((await res3.json()).error || "Failed Step 3 refinement");
       const data3 = await res3.json();
       setStep3Result(data3.result);
-      setEditableCV(data3.result);
+      setEditableCV(data3.result || formatRawTextToMarkdown(cvText));
 
       // Re-evaluate the new score on the refined CV
       setLoadingMsg("Re-evaluating refined score...");
