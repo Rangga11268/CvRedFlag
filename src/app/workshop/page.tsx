@@ -128,6 +128,7 @@ export default function Home() {
   const [selectedTemplate, setSelectedTemplate] = useState<"serif" | "sans" | "compact">("serif");
   const [forceSinglePage, setForceSinglePage] = useState<boolean>(false);
   const [canvasHeight, setCanvasHeight] = useState<number>(1123);
+  const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
   // Measure natural scrollHeight of A4 cv preview and set height to fit pages
   useEffect(() => {
@@ -347,6 +348,12 @@ export default function Home() {
       sessionStorage.removeItem("jobDescription");
       sessionStorage.removeItem("fileName");
     }
+
+    const timer = setTimeout(() => {
+      setIsInitializing(false);
+    }, 600);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const handleReoptimize = async () => {
@@ -680,6 +687,20 @@ ${bodyHtml}
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-base)] flex flex-col selection:bg-indigo-500/10 selection:text-indigo-900" style={{ color: 'var(--text-primary)', fontFamily: "var(--font-inter,'Inter',system-ui,sans-serif)" }}>
+      {/* ── Initial Splash Screen Loader ───────────────────────── */}
+      <div
+        className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-50 transition-opacity duration-300 ease-out ${
+          isInitializing ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <div className="flex flex-col items-center">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 shadow-xs" style={{ background: 'linear-gradient(135deg,var(--accent),#818cf8)' }}>
+            <FileArrowDown weight="bold" className="w-6 h-6 text-white animate-pulse" />
+          </div>
+          <h2 className="text-xs font-bold text-slate-800 tracking-tight" style={{ fontFamily: 'var(--font-jakarta)' }}>Menyiapkan Workspace AI...</h2>
+          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">Membuka Lembar Kerja CVRedFlag</p>
+        </div>
+      </div>
 
       {/* ── Toast Notifications ─────────────────────────────────── */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
@@ -726,7 +747,7 @@ ${bodyHtml}
           {/* Logo */}
           <a href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
             <img src="/logo.png" alt="CVRedFlag Logo" className="w-8 h-8 rounded-lg object-cover shadow-sm" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-            <span className="font-extrabold text-base tracking-tight" style={{ fontFamily: "var(--font-jakarta)", color: 'var(--text-primary)' }}>CVRedFlag<span className="text-indigo-650">.ai</span></span>
+            <span className="font-extrabold text-base tracking-tight" style={{ fontFamily: "var(--font-jakarta)", color: 'var(--text-primary)' }}>CVRedFlag<span className="text-indigo-600">.ai</span></span>
           </a>
           <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Workspace</span>
           <CaretRight weight="bold" className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
@@ -741,6 +762,13 @@ ${bodyHtml}
         </div>
 
         <div className="flex items-center gap-2">
+          <a
+            href="/"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] transition-all hover:scale-[1.02]"
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-jakarta)' }}
+          >
+            ← Kembali
+          </a>
           {currentStep > 0 && (
             <button
               onClick={handleReset}
