@@ -60,6 +60,14 @@ export function usePagePreview({
     return () => clearTimeout(timer);
   }, [editableCV, cvText, selectedTemplate, forceSinglePage, currentStep, activeTab, canvasHeight]);
 
+  // Clamp activePage to be within pageCount range if pageCount decreases
+  useEffect(() => {
+    const totalPages = forceSinglePage ? 1 : Math.max(1, Math.ceil(canvasHeight / 1123));
+    if (activePage > totalPages) {
+      setActivePage(1);
+    }
+  }, [canvasHeight, forceSinglePage, activePage]);
+
   // Dynamically scale A4 canvas to fit its wrapper column
   useEffect(() => {
     if (activeTab !== "preview") return;
@@ -70,7 +78,8 @@ export function usePagePreview({
       const A4_WIDTH_PX = 794;
       const observer = new ResizeObserver(([entry]) => {
         const available = entry.contentRect.width - 8;
-        setPreviewScale(Math.min(1, available / A4_WIDTH_PX));
+        const scaleVal = available > 0 ? available / A4_WIDTH_PX : 0.4;
+        setPreviewScale(Math.max(0.2, Math.min(1, scaleVal)));
       });
       observer.observe(wrapper);
       (wrapper as any)._resizeObserver = observer;
@@ -86,8 +95,8 @@ export function usePagePreview({
   }, [currentStep, activeTab]);
 
   const handlePageChange = (targetPage: number) => {
-    const pageCount = forceSinglePage ? 1 : Math.max(1, Math.ceil(canvasHeight / 1123));
-    if (targetPage < 1 || targetPage > pageCount) return;
+    const pageCountVal = forceSinglePage ? 1 : Math.max(1, Math.ceil(canvasHeight / 1123));
+    if (targetPage < 1 || targetPage > pageCountVal) return;
     setActivePage(targetPage);
   };
 
