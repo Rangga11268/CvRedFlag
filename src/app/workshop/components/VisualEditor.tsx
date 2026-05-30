@@ -88,28 +88,28 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
   return (
     <div className="flex flex-col w-full min-h-[500px]">
       {/* Simplified Toolbar Header */}
-      <div className="no-print p-3 px-4 border-b text-[11px] flex items-center justify-between font-medium bg-slate-50/80 text-slate-800 border-[var(--border)]">
+      <div className="no-print p-2 px-3 sm:p-3 sm:px-4 border-b text-[11px] flex items-center justify-between font-medium bg-slate-50/80 text-slate-800 border-[var(--border)] gap-2">
         {/* Left Side: Undo / Redo Buttons */}
         <div className="flex items-center bg-slate-200/60 p-0.5 rounded-lg border border-slate-200/30">
           <button
             type="button"
             onClick={handleUndo}
             disabled={historyIndex <= 0}
-            className="p-1 px-2.5 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-slate-650 hover:bg-white disabled:hover:bg-transparent"
+            className="p-1.5 px-2 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-slate-650 hover:bg-white disabled:hover:bg-transparent"
             title="Kembalikan perubahan terakhir (Ctrl+Z)"
           >
             <ArrowCounterClockwise weight="bold" className="w-3.5 h-3.5" />
-            Undo
+            <span className="hidden xs:inline">Undo</span>
           </button>
           <button
             type="button"
             onClick={handleRedo}
             disabled={historyIndex >= history.length - 1}
-            className="p-1 px-2.5 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-slate-650 hover:bg-white disabled:hover:bg-transparent"
+            className="p-1.5 px-2 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-slate-650 hover:bg-white disabled:hover:bg-transparent"
             title="Ulangi perubahan yang dibatalkan (Ctrl+Y)"
           >
             <ArrowClockwise weight="bold" className="w-3.5 h-3.5" />
-            Redo
+            <span className="hidden xs:inline">Redo</span>
           </button>
         </div>
 
@@ -118,26 +118,26 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
           <button
             type="button"
             onClick={() => setEditorMode("visual")}
-            className={`px-3 py-1 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer ${
+            className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer ${
               editorMode === "visual"
                 ? "bg-white text-indigo-600 shadow-3xs"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
             <Sparkle weight="bold" className="w-3 h-3" />
-            Visual Form
+            <span>Visual</span>
           </button>
           <button
             type="button"
             onClick={() => setEditorMode("raw")}
-            className={`px-3 py-1 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer ${
+            className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer ${
               editorMode === "raw"
                 ? "bg-white text-indigo-600 shadow-3xs"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
             <MagicWand weight="bold" className="w-3 h-3" />
-            Raw Markdown
+            <span>Markdown</span>
           </button>
         </div>
       </div>

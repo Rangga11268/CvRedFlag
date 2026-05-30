@@ -145,15 +145,15 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
   return (
     <div className="w-full min-h-[600px] p-6 bg-slate-50 flex flex-col gap-4 relative">
       {/* Control Panel for Cover Letter & Email generation */}
-      <div className="flex flex-col md:flex-row gap-3 p-4 bg-white rounded-2xl border border-[var(--border)] shadow-xs justify-between items-center z-10">
-        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-white rounded-2xl border border-[var(--border)] shadow-xs justify-between items-stretch sm:items-center z-10">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch gap-3.5 w-full sm:w-auto">
           {/* Format Selection */}
-          <div className="flex flex-col gap-1 text-left">
+          <div className="flex flex-col gap-1 text-left w-full sm:w-auto">
             <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Pilih Format Dokumen</label>
             <select
               value={coverLetterFormat}
               onChange={(e) => setCoverLetterFormat(e.target.value as any)}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold"
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 sm:py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold w-full sm:w-auto"
             >
               <option value="cover_letter">Cover Letter (Surat Lamaran)</option>
               <option value="body_email_1">Body Email (Formal & Lampiran)</option>
@@ -162,12 +162,12 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
           </div>
 
           {/* Language Selection */}
-          <div className="flex flex-col gap-1 text-left">
+          <div className="flex flex-col gap-1 text-left w-full sm:w-auto">
             <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Bahasa</label>
             <select
               value={coverLetterLang}
               onChange={(e) => setCoverLetterLang(e.target.value as any)}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold"
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 sm:py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold w-full sm:w-auto"
             >
               <option value="id">Bahasa Indonesia</option>
               <option value="en">English</option>
@@ -175,12 +175,12 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
           </div>
 
           {/* Tone Selection */}
-          <div className="flex flex-col gap-1 text-left">
+          <div className="flex flex-col gap-1 text-left w-full sm:w-auto">
             <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Gaya Bahasa (Tone)</label>
             <select
               value={coverLetterTone}
               onChange={(e) => setCoverLetterTone(e.target.value as any)}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold"
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 sm:py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold w-full sm:w-auto"
             >
               <option value="formal">Formal & Sopan (Formal)</option>
               <option value="confident">Percaya Diri & Sukses (Confident)</option>
@@ -225,11 +225,11 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
 
       {coverLetter ? (
         <div className="flex flex-col gap-3 bg-[var(--bg-base)] rounded-2xl p-4 border border-[var(--border)] shadow-sm">
-          <div className="flex items-center justify-between pb-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700" style={{ fontFamily: 'var(--font-jakarta)' }}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500" style={{ fontFamily: 'var(--font-jakarta)' }}>
               {coverLetterFormat.startsWith("body_email") ? "AI Generated Body Email" : "AI Generated Cover Letter"}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 onClick={async () => {
                   const success = await copyRichText(coverLetter);
@@ -239,7 +239,7 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
                     showToast("Failed to copy text.", "error");
                   }
                 }}
-                className="px-3 py-1.5 text-[9px] font-bold uppercase bg-indigo-50 border border-indigo-150/40 text-indigo-700 hover:bg-indigo-100 rounded-lg cursor-pointer transition-all"
+                className="flex-1 sm:flex-initial text-center justify-center px-3 py-1.5 text-[9px] font-bold uppercase bg-indigo-50 border border-indigo-150/40 text-indigo-700 hover:bg-indigo-100 rounded-lg cursor-pointer transition-all"
                 style={{ fontFamily: 'var(--font-jakarta)' }}
               >
                 Copy to Clipboard
@@ -247,7 +247,7 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
               {!coverLetterFormat.startsWith("body_email") && (
                 <button
                   onClick={handleDownloadCoverLetterPDF}
-                  className="px-3 py-1.5 text-[9px] font-bold uppercase bg-emerald-50 border border-emerald-150/40 text-emerald-700 hover:bg-emerald-100 rounded-lg cursor-pointer transition-all flex items-center gap-1"
+                  className="flex-1 sm:flex-initial text-center justify-center px-3 py-1.5 text-[9px] font-bold uppercase bg-emerald-50 border border-emerald-150/40 text-emerald-700 hover:bg-emerald-100 rounded-lg cursor-pointer transition-all flex items-center gap-1"
                   style={{ fontFamily: 'var(--font-jakarta)' }}
                 >
                   <FileArrowDown weight="bold" className="w-3.5 h-3.5" /> Download PDF
