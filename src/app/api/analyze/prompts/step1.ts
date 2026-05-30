@@ -35,6 +35,8 @@ You must calculate the score (0-100) strictly based on this weighted rubric:
 3. Structural Completeness (Max 20 points): Ensure presence of critical sections: Contact, Professional Summary, Work Experience/Projects, Education, Skills. Deduct 4 points for each missing section.
 4. Readability & Formatting (Max 15 points): Word count (ideal 400-800), avoidance of first-person pronouns ("I", "me", "Saya", "Aku"), clean layout.
 
+If the optimized CV has successfully resolved all previous red flags and integrated all missing keywords, and the layout criteria are met, you should award a perfect score of 100. Do not artificially cap the score at 90-95 if all issues have been addressed.
+
 Return ONLY this JSON format:
 {
   "score": <total sum of breakdown scores, 0-100>,
@@ -79,6 +81,8 @@ Calculate the score (0-100) strictly based on this weighted rubric:
 2. Impact & Action Verbs (Max 25 points): Look for action verbs combined with quantified metrics/results.
 3. Structural Completeness (Max 20 points): Ensure sections (Contact, Professional Summary, Work Experience/Projects, Education, Skills) are present. Deduct 4 points for each missing section.
 4. Readability & Formatting (Max 15 points): Word count (ideal 400-800 words), absence of first-person pronouns ("Saya", "Aku", "I"), formatting clarity.
+
+If the CV is exceptionally well-aligned, contains all sections, has strong quantified metrics, and has no missing keywords or red flags, feel free to award a perfect score of 100. Do not artificially cap the maximum score.
 
 Return ONLY this JSON:
 {
