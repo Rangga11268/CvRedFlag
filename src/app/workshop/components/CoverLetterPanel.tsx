@@ -145,15 +145,15 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
   return (
     <div className="w-full min-h-[600px] p-6 bg-slate-50 flex flex-col gap-4 relative">
       {/* Control Panel for Cover Letter & Email generation */}
-      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-white rounded-2xl border border-[var(--border)] shadow-xs justify-between items-stretch sm:items-center z-10">
-        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch gap-3.5 w-full sm:w-auto">
+      <div className="flex flex-col lg:flex-row gap-4 p-4 bg-white rounded-2xl border border-[var(--border)] shadow-xs justify-between items-stretch lg:items-end z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full lg:w-auto flex-1">
           {/* Format Selection */}
-          <div className="flex flex-col gap-1 text-left w-full sm:w-auto">
+          <div className="flex flex-col gap-1 text-left w-full">
             <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Pilih Format Dokumen</label>
             <select
               value={coverLetterFormat}
               onChange={(e) => setCoverLetterFormat(e.target.value as any)}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 sm:py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold w-full sm:w-auto"
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 sm:py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold w-full"
             >
               <option value="cover_letter">Cover Letter (Surat Lamaran)</option>
               <option value="body_email_1">Body Email (Formal & Lampiran)</option>
@@ -162,12 +162,12 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
           </div>
 
           {/* Language Selection */}
-          <div className="flex flex-col gap-1 text-left w-full sm:w-auto">
+          <div className="flex flex-col gap-1 text-left w-full">
             <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Bahasa</label>
             <select
               value={coverLetterLang}
               onChange={(e) => setCoverLetterLang(e.target.value as any)}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 sm:py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold w-full sm:w-auto"
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 sm:py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold w-full"
             >
               <option value="id">Bahasa Indonesia</option>
               <option value="en">English</option>
@@ -175,12 +175,12 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
           </div>
 
           {/* Tone Selection */}
-          <div className="flex flex-col gap-1 text-left w-full sm:w-auto">
+          <div className="flex flex-col gap-1 text-left w-full">
             <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Gaya Bahasa (Tone)</label>
             <select
               value={coverLetterTone}
               onChange={(e) => setCoverLetterTone(e.target.value as any)}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 sm:py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold w-full sm:w-auto"
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 sm:py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold w-full"
             >
               <option value="formal">Formal & Sopan (Formal)</option>
               <option value="confident">Percaya Diri & Sukses (Confident)</option>
@@ -193,7 +193,7 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
         <button
           disabled={loadingCoverLetter || !cvText || !jobDescription}
           onClick={() => handleGenerateCoverLetter()}
-          className="w-full md:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+          className="w-full lg:w-auto px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 h-[38px] lg:h-[34px] shrink-0 lg:mb-[1px]"
           style={{ fontFamily: 'var(--font-jakarta)' }}
         >
           {loadingCoverLetter ? (
