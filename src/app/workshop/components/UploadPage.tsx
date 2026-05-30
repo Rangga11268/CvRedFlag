@@ -40,8 +40,8 @@ const UploadPage: React.FC<UploadPageProps> = ({
       className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start max-w-6xl mx-auto pt-4 sm:pt-8 pb-8 sm:pb-16 px-4 sm:px-6"
     >
       <div className="lg:col-span-6 flex flex-col gap-4 sm:gap-6">
-        <span className="px-3.5 py-1 text-[10px] font-bold uppercase rounded-full w-max tracking-wider" style={{ background: 'var(--accent-glow)', border: '1px solid var(--border-accent)', color: 'var(--accent)', fontFamily: 'var(--font-jakarta)' }}>
-          ✦ AI Optimizer
+        <span className="px-3.5 py-1 text-[10px] font-bold uppercase rounded-full w-max tracking-wider flex items-center gap-1" style={{ background: 'var(--accent-glow)', border: '1px solid var(--border-accent)', color: 'var(--accent)', fontFamily: 'var(--font-jakarta)' }}>
+          <Sparkle weight="fill" className="w-3 h-3 text-indigo-600" /> AI Optimizer
         </span>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight" style={{ fontFamily: 'var(--font-jakarta)', color: 'var(--text-primary)' }}>
           AI Resume{" "}

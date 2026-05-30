@@ -1,5 +1,5 @@
 import React from "react";
-import { PencilSimple, FileText } from "@phosphor-icons/react";
+import { PencilSimple, FileText, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { renderCV, formatRawTextToMarkdown } from "../utils/cvHelpers";
 
 interface A4PreviewProps {
@@ -57,9 +57,10 @@ const A4Preview: React.FC<A4PreviewProps> = ({
           <button
             type="button"
             onClick={() => handlePageChange(activePage === 1 ? 2 : 1)}
-            className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all self-start sm:self-auto shrink-0 cursor-pointer"
+            className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all self-start sm:self-auto shrink-0 cursor-pointer flex items-center gap-1"
           >
-            Lihat Halaman {activePage === 1 ? '2' : '1'} →
+            <span>Lihat Halaman {activePage === 1 ? '2' : '1'}</span>
+            <CaretRight weight="bold" className="w-3 h-3" />
           </button>
         </div>
       )}
@@ -180,7 +181,7 @@ const A4Preview: React.FC<A4PreviewProps> = ({
               onClick={() => handlePageChange(activePage - 1)}
               className="w-7.5 h-7.5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors text-sm sm:text-xs font-bold text-slate-700 shadow-3xs"
             >
-              ←
+              <CaretLeft weight="bold" className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </button>
             <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap" style={{ fontFamily: 'var(--font-jakarta)' }}>
               Halaman {activePage} / {pageCount}
@@ -191,7 +192,7 @@ const A4Preview: React.FC<A4PreviewProps> = ({
               onClick={() => handlePageChange(activePage + 1)}
               className="w-7.5 h-7.5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors text-sm sm:text-xs font-bold text-slate-700 shadow-3xs"
             >
-              →
+              <CaretRight weight="bold" className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </button>
           </div>
         )}

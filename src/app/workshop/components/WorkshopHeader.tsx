@@ -1,5 +1,5 @@
 import React from "react";
-import { CaretRight, ArrowClockwise, FileArrowDown, CheckCircle } from "@phosphor-icons/react";
+import { CaretRight, ArrowClockwise, FileArrowDown, CheckCircle, ArrowLeft } from "@phosphor-icons/react";
 
 interface WorkshopHeaderProps {
   pdfFile: File | null;
@@ -39,10 +39,10 @@ const WorkshopHeader: React.FC<WorkshopHeaderProps> = ({
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         <a
           href="/"
-          className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3.5 sm:py-2 text-[10px] sm:text-xs font-semibold rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] transition-all hover:scale-[1.02]"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 text-[10px] sm:text-xs font-semibold rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] transition-all hover:scale-[1.02]"
           style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-jakarta)' }}
         >
-          <span>←</span>
+          <ArrowLeft weight="bold" className="w-3.5 h-3.5 shrink-0" />
           <span className="hidden xs:inline">Kembali</span>
         </a>
         {currentStep > 0 && (

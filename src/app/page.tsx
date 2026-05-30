@@ -8,7 +8,9 @@ import {
   Lightning,
   Check,
   WarningCircle,
-  FileArrowDown
+  FileArrowDown,
+  Plus,
+  Minus
 } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -259,7 +261,13 @@ export default function LandingPage() {
             <div key={idx} className="bg-white border border-slate-200 rounded-2xl overflow-hidden transition-all">
               <button onClick={() => toggleFaq(idx)} className="w-full p-5 text-left font-bold text-xs text-slate-800 flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-50/50" style={{ fontFamily: 'var(--font-jakarta)' }}>
                 <span>{item.q}</span>
-                <span className="text-slate-450 shrink-0 text-lg">{faqOpen === idx ? "−" : "+"}</span>
+                <span className="text-slate-450 shrink-0">
+                  {faqOpen === idx ? (
+                    <Minus weight="bold" className="w-3.5 h-3.5" />
+                  ) : (
+                    <Plus weight="bold" className="w-3.5 h-3.5" />
+                  )}
+                </span>
               </button>
               <AnimatePresence>
                 {faqOpen === idx && (

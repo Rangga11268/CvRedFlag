@@ -720,14 +720,14 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                 <button
                   onClick={() => setShowFinishAlert(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-650 hover:bg-slate-50 transition-colors cursor-pointer text-center"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200/80 text-slate-700 hover:text-slate-800 rounded-xl text-xs font-bold transition-all cursor-pointer text-center border border-slate-200/50"
                   style={{ fontFamily: 'var(--font-jakarta)' }}
                 >
                   Tetap di Sini
                 </button>
                 <button
                   onClick={() => { window.location.href = "/"; }}
-                  className="px-5 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md hover:shadow-lg cursor-pointer text-center"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md hover:shadow-lg cursor-pointer text-center"
                   style={{ fontFamily: 'var(--font-jakarta)' }}
                 >
                   Kembali ke Beranda

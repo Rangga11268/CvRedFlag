@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Key, Gear, Info } from "@phosphor-icons/react";
+import { X, Key, Gear, Info, ArrowSquareOut } from "@phosphor-icons/react";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -74,9 +74,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, showToas
                 href="https://aistudio.google.com/" 
                 target="_blank" 
                 rel="noreferrer" 
-                className="text-[9px] font-bold text-indigo-600 hover:underline"
+                className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
               >
-                Dapatkan Key Gratis →
+                <span>Dapatkan Key Gratis</span>
+                <ArrowSquareOut weight="bold" className="w-2.5 h-2.5" />
               </a>
             </div>
             <div className="relative">
@@ -106,9 +107,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, showToas
                 href="https://openrouter.ai/settings/keys" 
                 target="_blank" 
                 rel="noreferrer" 
-                className="text-[9px] font-bold text-indigo-600 hover:underline"
+                className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
               >
-                Dapatkan Key Gratis →
+                <span>Dapatkan Key Gratis</span>
+                <ArrowSquareOut weight="bold" className="w-2.5 h-2.5" />
               </a>
             </div>
             <div className="relative">
