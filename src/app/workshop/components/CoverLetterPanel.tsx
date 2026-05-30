@@ -145,8 +145,8 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
   return (
     <div className="w-full min-h-[600px] p-6 bg-slate-50 flex flex-col gap-4 relative">
       {/* Control Panel for Cover Letter & Email generation */}
-      <div className="flex flex-col lg:flex-row gap-4 p-4 bg-white rounded-2xl border border-[var(--border)] shadow-xs justify-between items-stretch lg:items-end z-10">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full lg:w-auto flex-1">
+      <div className="p-4 bg-white rounded-2xl border border-[var(--border)] shadow-xs z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end w-full">
           {/* Format Selection */}
           <div className="flex flex-col gap-1 text-left w-full">
             <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Pilih Format Dokumen</label>
@@ -187,27 +187,27 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
               <option value="collaborative">Kerja Sama & Antusias (Collaborative)</option>
             </select>
           </div>
-        </div>
 
-        {/* Generate Button */}
-        <button
-          disabled={loadingCoverLetter || !cvText || !jobDescription}
-          onClick={() => handleGenerateCoverLetter()}
-          className="w-full lg:w-auto px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 h-[38px] lg:h-[34px] shrink-0 lg:mb-[1px]"
-          style={{ fontFamily: 'var(--font-jakarta)' }}
-        >
-          {loadingCoverLetter ? (
-            <>
-              <ArrowClockwise weight="bold" className="w-3.5 h-3.5 animate-spin" />
-              Memproses Dokumen...
-            </>
-          ) : (
-            <>
-              <MagicWand weight="bold" className="w-3.5 h-3.5" />
-              {coverLetter ? "Regenerasi Dokumen" : "Buat Dokumen"}
-            </>
-          )}
-        </button>
+          {/* Generate Button */}
+          <button
+            disabled={loadingCoverLetter || !cvText || !jobDescription}
+            onClick={() => handleGenerateCoverLetter()}
+            className="w-full px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 h-[38px] sm:h-[34px] shrink-0"
+            style={{ fontFamily: 'var(--font-jakarta)' }}
+          >
+            {loadingCoverLetter ? (
+              <>
+                <ArrowClockwise weight="bold" className="w-3.5 h-3.5 animate-spin" />
+                Memproses Dokumen...
+              </>
+            ) : (
+              <>
+                <MagicWand weight="bold" className="w-3.5 h-3.5" />
+                {coverLetter ? "Regenerasi Dokumen" : "Buat Dokumen"}
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>
