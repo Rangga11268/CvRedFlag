@@ -35,9 +35,9 @@ const CVControlsBar: React.FC<CVControlsBarProps> = ({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2.5">
+    <div className="flex flex-col xs:grid xs:grid-cols-2 sm:flex sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2.5 w-full">
       {/* Job Category Dropdown Select */}
-      <div className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100/60 h-[34px] px-3 rounded-lg border border-slate-200 shadow-3xs transition-colors animate-fade-in">
+      <div className="flex items-center justify-between sm:justify-start gap-2 bg-slate-50 hover:bg-slate-100/60 h-[38px] sm:h-[34px] px-3 rounded-xl sm:rounded-lg border border-slate-200 shadow-3xs transition-colors animate-fade-in w-full sm:w-auto">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Role:</span>
         <select
           value={jobCategory}
@@ -48,7 +48,7 @@ const CVControlsBar: React.FC<CVControlsBarProps> = ({
               handleRecompile(val, cvLanguage);
             }
           }}
-          className="bg-transparent h-full text-xs font-bold text-slate-700 focus:outline-none cursor-pointer border-none p-0 focus:ring-0"
+          className="bg-transparent h-full text-xs font-bold text-slate-700 focus:outline-none cursor-pointer border-none p-0 focus:ring-0 text-right sm:text-left"
           style={{ fontFamily: 'var(--font-jakarta)' }}
         >
           <option value="general">Umum (Admin, Finance)</option>
@@ -57,7 +57,7 @@ const CVControlsBar: React.FC<CVControlsBarProps> = ({
       </div>
 
       {/* CV Language Dropdown Select */}
-      <div className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100/60 h-[34px] px-3 rounded-lg border border-slate-200 shadow-3xs transition-colors animate-fade-in">
+      <div className="flex items-center justify-between sm:justify-start gap-2 bg-slate-50 hover:bg-slate-100/60 h-[38px] sm:h-[34px] px-3 rounded-xl sm:rounded-lg border border-slate-200 shadow-3xs transition-colors animate-fade-in w-full sm:w-auto">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Bahasa CV:</span>
         <select
           value={cvLanguage}
@@ -68,7 +68,7 @@ const CVControlsBar: React.FC<CVControlsBarProps> = ({
               handleRecompile(jobCategory, val);
             }
           }}
-          className="bg-transparent h-full text-xs font-bold text-slate-700 focus:outline-none cursor-pointer border-none p-0 focus:ring-0"
+          className="bg-transparent h-full text-xs font-bold text-slate-700 focus:outline-none cursor-pointer border-none p-0 focus:ring-0 text-right sm:text-left"
           style={{ fontFamily: 'var(--font-jakarta)' }}
         >
           <option value="auto">Bawaan (Auto)</option>
@@ -81,8 +81,8 @@ const CVControlsBar: React.FC<CVControlsBarProps> = ({
       {currentStep === 3 && (
         <>
           {/* Font Style Buttons */}
-          <div className="flex items-center gap-1 bg-slate-50 h-[34px] px-2 rounded-lg border border-slate-200 shadow-3xs">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1 shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Style:</span>
+          <div className="flex items-center justify-between sm:justify-start gap-2 bg-slate-50 h-[38px] sm:h-[34px] px-3 sm:px-2 rounded-xl sm:rounded-lg border border-slate-200 shadow-3xs w-full sm:w-auto">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Style:</span>
             <div className="flex items-center gap-1">
               {(["serif", "sans", "compact"] as const).map((temp) => (
                 <button key={temp} onClick={() => onTemplateChange(temp)}
@@ -96,9 +96,9 @@ const CVControlsBar: React.FC<CVControlsBarProps> = ({
           </div>
 
           {/* Page Fit Mode */}
-          <label className="flex items-center gap-2 text-[10px] font-bold uppercase cursor-pointer select-none text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100/60 h-[34px] px-3 rounded-lg border border-slate-200 shadow-3xs transition-colors" style={{ fontFamily: 'var(--font-jakarta)' }}>
-            <input type="checkbox" checked={forceSinglePage} onChange={(e) => onForceSinglePageChange(e.target.checked)} className="w-3.5 h-3.5 rounded text-indigo-600 accent-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+          <label className="flex items-center justify-between sm:justify-start gap-2 text-[10px] font-bold uppercase cursor-pointer select-none text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100/60 h-[38px] sm:h-[34px] px-3 rounded-xl sm:rounded-lg border border-slate-200 shadow-3xs transition-colors w-full sm:w-auto" style={{ fontFamily: 'var(--font-jakarta)' }}>
             <span className="tracking-wider">Fit 1 Page</span>
+            <input type="checkbox" checked={forceSinglePage} onChange={(e) => onForceSinglePageChange(e.target.checked)} className="w-3.5 h-3.5 rounded text-indigo-600 accent-indigo-600 focus:ring-indigo-500 cursor-pointer" />
           </label>
         </>
       )}

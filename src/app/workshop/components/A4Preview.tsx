@@ -173,23 +173,23 @@ const A4Preview: React.FC<A4PreviewProps> = ({
 
         {/* Floating Page Navigator Controls */}
         {isMultiPage && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 bg-white/90 backdrop-blur-md border border-slate-200 px-3 py-1.5 rounded-full shadow-lg flex items-center gap-3 select-none">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 bg-white/90 backdrop-blur-md border border-slate-200 px-3.5 py-1.5 rounded-full shadow-lg flex items-center gap-3.5 select-none transition-all">
             <button
               type="button"
               disabled={activePage === 1}
               onClick={() => handlePageChange(activePage - 1)}
-              className="w-6 h-6 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors text-xs font-bold text-slate-700"
+              className="w-7.5 h-7.5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors text-sm sm:text-xs font-bold text-slate-700 shadow-3xs"
             >
               ←
             </button>
-            <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider" style={{ fontFamily: 'var(--font-jakarta)' }}>
+            <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap" style={{ fontFamily: 'var(--font-jakarta)' }}>
               Halaman {activePage} / {pageCount}
             </span>
             <button
               type="button"
               disabled={activePage === pageCount}
               onClick={() => handlePageChange(activePage + 1)}
-              className="w-6 h-6 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors text-xs font-bold text-slate-700"
+              className="w-7.5 h-7.5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors text-sm sm:text-xs font-bold text-slate-700 shadow-3xs"
             >
               →
             </button>
