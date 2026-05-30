@@ -1569,10 +1569,10 @@ ${bodyHtml}
 
                 {/* Row 2: CV Configuration Controls */}
                 {currentStep > 0 ? (
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     {/* Job Category Dropdown Select */}
-                    <div className="flex items-center gap-1.5 bg-[var(--bg-base)] px-2.5 py-1.5 rounded-lg border shadow-3xs animate-fade-in" style={{ borderColor: 'var(--border)' }}>
-                      <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Role:</span>
+                    <div className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100/60 h-[34px] px-3 rounded-lg border border-slate-200 shadow-3xs transition-colors animate-fade-in">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Role:</span>
                       <select
                         value={jobCategory}
                         onChange={(e) => {
@@ -1582,7 +1582,7 @@ ${bodyHtml}
                             handleRecompile(val, cvLanguage);
                           }
                         }}
-                        className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer border-none p-0 focus:ring-0"
+                        className="bg-transparent h-full text-xs font-bold text-slate-700 focus:outline-none cursor-pointer border-none p-0 focus:ring-0"
                         style={{ fontFamily: 'var(--font-jakarta)' }}
                       >
                         <option value="general">Umum (Admin, Finance)</option>
@@ -1591,8 +1591,8 @@ ${bodyHtml}
                     </div>
 
                     {/* CV Language Dropdown Select */}
-                    <div className="flex items-center gap-1.5 bg-[var(--bg-base)] px-2.5 py-1.5 rounded-lg border shadow-3xs animate-fade-in" style={{ borderColor: 'var(--border)' }}>
-                      <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Bahasa CV:</span>
+                    <div className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100/60 h-[34px] px-3 rounded-lg border border-slate-200 shadow-3xs transition-colors animate-fade-in">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Bahasa CV:</span>
                       <select
                         value={cvLanguage}
                         onChange={(e) => {
@@ -1602,7 +1602,7 @@ ${bodyHtml}
                             handleRecompile(jobCategory, val);
                           }
                         }}
-                        className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer border-none p-0 focus:ring-0"
+                        className="bg-transparent h-full text-xs font-bold text-slate-700 focus:outline-none cursor-pointer border-none p-0 focus:ring-0"
                         style={{ fontFamily: 'var(--font-jakarta)' }}
                       >
                         <option value="auto">Bawaan (Auto)</option>
@@ -1613,26 +1613,28 @@ ${bodyHtml}
                     </div>
 
                     {currentStep === 3 && (
-                      <div className="flex flex-wrap items-center gap-2">
+                      <>
                         {/* Font Style Buttons */}
-                        <div className="flex items-center gap-1 bg-[var(--bg-base)] p-1 rounded-lg border shadow-3xs" style={{ borderColor: 'var(--border)' }}>
-                          <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase px-1.5 shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Style:</span>
-                          {(["serif", "sans", "compact"] as const).map((temp) => (
-                            <button key={temp} onClick={() => setSelectedTemplate(temp)}
-                              className={`px-2.5 py-0.5 text-[9px] font-bold uppercase rounded-md cursor-pointer transition-all ${selectedTemplate === temp ? "bg-white text-indigo-700 shadow-3xs border border-slate-100" : "text-slate-500 hover:text-slate-700"}`}
-                              style={{ fontFamily: 'var(--font-jakarta)' }}
-                            >
-                              {temp}
-                            </button>
-                          ))}
+                        <div className="flex items-center gap-1 bg-slate-50 h-[34px] px-2 rounded-lg border border-slate-200 shadow-3xs">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1 shrink-0" style={{ fontFamily: 'var(--font-jakarta)' }}>Style:</span>
+                          <div className="flex items-center gap-1">
+                            {(["serif", "sans", "compact"] as const).map((temp) => (
+                              <button key={temp} onClick={() => setSelectedTemplate(temp)}
+                                className={`px-2.5 py-1 text-[9px] font-bold uppercase rounded-md cursor-pointer transition-all ${selectedTemplate === temp ? "bg-white text-indigo-600 shadow-3xs border border-slate-200/50" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/30"}`}
+                                style={{ fontFamily: 'var(--font-jakarta)' }}
+                              >
+                                {temp}
+                              </button>
+                            ))}
+                          </div>
                         </div>
 
                         {/* Page Fit Mode */}
-                        <label className="flex items-center gap-1.5 text-[9px] font-bold uppercase cursor-pointer select-none text-slate-500 hover:text-slate-700 bg-[var(--bg-base)] px-2.5 py-1.5 rounded-lg border shadow-3xs" style={{ borderColor: 'var(--border)', fontFamily: 'var(--font-jakarta)' }}>
-                          <input type="checkbox" checked={forceSinglePage} onChange={(e) => setForceSinglePage(e.target.checked)} className="cursor-pointer" />
-                          <span>Fit 1 Page</span>
+                        <label className="flex items-center gap-2 text-[10px] font-bold uppercase cursor-pointer select-none text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100/60 h-[34px] px-3 rounded-lg border border-slate-200 shadow-3xs transition-colors" style={{ fontFamily: 'var(--font-jakarta)' }}>
+                          <input type="checkbox" checked={forceSinglePage} onChange={(e) => setForceSinglePage(e.target.checked)} className="w-3.5 h-3.5 rounded text-indigo-600 accent-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                          <span className="tracking-wider">Fit 1 Page</span>
                         </label>
-                      </div>
+                      </>
                     )}
                   </div>
                 ) : (

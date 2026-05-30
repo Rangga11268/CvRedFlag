@@ -327,6 +327,11 @@ Job Description: ${jobDescription}`;
       const emailOpsi = format === "body_email_2" ? 2 : 1;
       const isSoftwareEngineer = jobCategory === "software_engineer";
 
+      const currentDate = new Date();
+      const todayDateString = isIndo
+        ? currentDate.toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" })
+        : currentDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
       systemPrompt = `You are an elite executive career coach, ATS resume writer, and programmer recruiter. Write a highly professional and tailored ${isEmail ? "Body Email cover draft" : "1-page Cover Letter"} in ${isIndo ? "Bahasa Indonesia" : "English"} for a ${isSoftwareEngineer ? "Software Engineer / IT Professional" : "General Professional"}. Respond ONLY in Markdown.`;
       
       if (isSoftwareEngineer) {
@@ -364,7 +369,7 @@ Job Description:
 ${jobDescription}`;
         } else {
           userPrompt = `Write a formal Cover Letter in ${isIndo ? "Bahasa Indonesia" : "English"} for a Software Engineer, following this template format:
-[Date Placeholder]
+${todayDateString}
 
 [Sender Name]
 [City, Country] | [Email] | [Phone]
@@ -392,6 +397,7 @@ Best regards,
 Instructions:
 - Fill in the brackets with the candidate's actual data from the CV and target Job Description.
 - Tailor details to Tokopedia, Gojek, Shopee, or whatever company is target in the Job Description.
+- CRITICAL: You MUST use the current date at the top of the Cover Letter: ${todayDateString}. Do NOT use any other date.
 - Output ONLY the final Cover Letter in Markdown format. Do not include extra greetings, chat, or explanations.
 
 Candidate's CV data:
@@ -482,6 +488,16 @@ ${jobDescription}`;
         } else {
           if (isIndo) {
             userPrompt = `Write a professional Cover Letter in Bahasa Indonesia, structured similarly to this template:
+${todayDateString}
+
+[Sender Name]
+[City, Country] | [Email] | [Phone]
+
+To:
+Hiring Manager
+[Company Name]
+[Company Address Placeholder]
+
 Selamat siang Bapak/Ibu...,
 
 Nama saya [Nama Kamu], dengan pengalaman di [sebutkan bidang Kamu]. Saya tertarik untuk bergabung dengan [Nama Perusahaan], perusahaan yang saya kagumi karena [sebutkan alasan spesifik]. Meskipun saat ini tidak ada posisi yang terbuka, saya sangat ingin menawarkan kualifikasi dan minat yang kuat untuk berkontribusi. Saya yakin dengan kemampuan saya untuk memberikan nilai tambah bagi tim [Nama Perusahaan] dan siap untuk berdiskusi lebih lanjut dalam sebuah wawancara. Terlampir adalah CV saya untuk bahan pertimbangan Anda.
@@ -493,7 +509,8 @@ Salam hormat,
 
 Instructions:
 - Tailor the template to the target Job Description and highlight the achievements from the CV.
-- Include date, sender, and recipient details at the very top of the Cover Letter.
+- CRITICAL: You MUST use the current date at the top of the Cover Letter: ${todayDateString}. Do NOT use any other date.
+- Include sender and recipient details at the top of the Cover Letter as shown in the template.
 - Output ONLY the final Cover Letter in Markdown format. Do not include extra greetings, chat, or explanations.
 
 Candidate's CV data:
@@ -503,6 +520,16 @@ Job Description:
 ${jobDescription}`;
           } else {
             userPrompt = `Write a professional Cover Letter in English, structured similarly to this template:
+${todayDateString}
+
+[Sender Name]
+[City, Country] | [Email] | [Phone]
+
+To:
+Hiring Manager
+[Company Name]
+[Company Address Placeholder]
+
 Dear Ms/Mr. .....,
 
 My name is [Your Name], with experience in [mention your field]. I am interested in joining [Company Name], a company I admire for [mention specific reasons]. Although there are currently no open positions, I am eager to offer my qualifications and strong interest in contributing. I am confident in my ability to add value to [Company Name]'s team and am prepared to discuss further in an interview. Attached is my CV for your consideration.
@@ -514,7 +541,8 @@ Best regards,
 
 Instructions:
 - Tailor the template to the target Job Description and highlight the achievements from the CV.
-- Include date, sender, and recipient details at the very top of the Cover Letter.
+- CRITICAL: You MUST use the current date at the top of the Cover Letter: ${todayDateString}. Do NOT use any other date.
+- Include sender and recipient details at the top of the Cover Letter as shown in the template.
 - Output ONLY the final Cover Letter in Markdown format. Do not include extra greetings, chat, or explanations.
 
 Candidate's CV data:
