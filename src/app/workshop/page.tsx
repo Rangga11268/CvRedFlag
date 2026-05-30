@@ -727,7 +727,12 @@ export default function Home() {
                   Tetap di Sini
                 </button>
                 <button
-                  onClick={() => { window.location.href = "/"; }}
+                  onClick={() => {
+                    try {
+                      localStorage.removeItem("cv_redflag_workshop_backup");
+                    } catch (e) {}
+                    window.location.href = "/";
+                  }}
                   className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md hover:shadow-lg cursor-pointer text-center"
                   style={{ fontFamily: 'var(--font-jakarta)' }}
                 >
