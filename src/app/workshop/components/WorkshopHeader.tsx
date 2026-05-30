@@ -6,6 +6,7 @@ interface WorkshopHeaderProps {
   currentStep: number;
   handleReset: () => void;
   handleDownloadPDF: () => void;
+  onFinishClick?: () => void;
 }
 
 const WorkshopHeader: React.FC<WorkshopHeaderProps> = ({
@@ -13,6 +14,7 @@ const WorkshopHeader: React.FC<WorkshopHeaderProps> = ({
   currentStep,
   handleReset,
   handleDownloadPDF,
+  onFinishClick,
 }) => {
   return (
     <header className="no-print sticky top-0 z-40 backdrop-blur-xl border-b px-3 sm:px-6 py-3 flex sm:py-3.5 items-center justify-between" style={{ background: 'rgba(255,255,255,0.85)', borderColor: 'var(--border)' }}>
@@ -45,7 +47,7 @@ const WorkshopHeader: React.FC<WorkshopHeaderProps> = ({
         </a>
         {currentStep > 0 && (
           <button
-            onClick={currentStep === 3 ? () => { window.location.href = "/"; } : handleReset}
+            onClick={currentStep === 3 ? (onFinishClick || (() => { window.location.href = "/"; })) : handleReset}
             className="flex items-center gap-1 px-2.5 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-semibold rounded-xl cursor-pointer border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] transition-all hover:scale-[1.02]"
             style={{ color: 'var(--text-secondary)' }}
           >

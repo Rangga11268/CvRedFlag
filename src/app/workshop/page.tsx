@@ -55,6 +55,7 @@ export default function Home() {
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [editorMode, setEditorMode] = useState<"visual" | "raw">("visual");
   const [expandedSection, setExpandedSection] = useState<string | null>("header");
+  const [showFinishAlert, setShowFinishAlert] = useState<boolean>(false);
 
   const { toasts, showToast, removeToast } = useToast();
 
@@ -468,6 +469,7 @@ export default function Home() {
         currentStep={currentStep}
         handleReset={handleReset}
         handleDownloadPDF={handleDownloadPDF}
+        onFinishClick={() => setShowFinishAlert(true)}
       />
 
       {/* ── Main Content ────────────────────────────────────────── */}
@@ -680,6 +682,61 @@ export default function Home() {
         )}
 
       </div>
+
+      {/* ── Custom Finish Alert Modal ────────────────────────────── */}
+      <AnimatePresence>
+        {showFinishAlert && (
+          <div className="fixed inset-0 z-55 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowFinishAlert(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"
+            />
+            
+            {/* Modal Alert Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-sm overflow-hidden relative z-10 flex flex-col p-6 text-center"
+            >
+              {/* Animated Celebration Icon */}
+              <div className="mx-auto w-14 h-14 bg-indigo-50 text-indigo-650 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle weight="fill" className="w-8 h-8 text-indigo-600" />
+              </div>
+              
+              <h3 className="text-base font-extrabold text-slate-800 mb-2" style={{ fontFamily: 'var(--font-jakarta)' }}>
+                Sesi Selesai! 🎉
+              </h3>
+              
+              <p className="text-xs text-slate-500 leading-relaxed mb-6">
+                Selamat! CV Anda telah berhasil dioptimalkan menjadi ATS-friendly. Semoga sukses melamar pekerjaan impian Anda!
+              </p>
+              
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
+                <button
+                  onClick={() => setShowFinishAlert(false)}
+                  className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-650 hover:bg-slate-50 transition-colors cursor-pointer text-center"
+                  style={{ fontFamily: 'var(--font-jakarta)' }}
+                >
+                  Tetap di Sini
+                </button>
+                <button
+                  onClick={() => { window.location.href = "/"; }}
+                  className="px-5 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md hover:shadow-lg cursor-pointer text-center"
+                  style={{ fontFamily: 'var(--font-jakarta)' }}
+                >
+                  Kembali ke Beranda
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
