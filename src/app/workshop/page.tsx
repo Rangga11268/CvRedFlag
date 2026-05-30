@@ -8,6 +8,7 @@ import {
   Info,
   X,
   ArrowClockwise,
+  Confetti,
 } from "@phosphor-icons/react";
 
 // Component imports
@@ -706,11 +707,11 @@ export default function Home() {
             >
               {/* Animated Celebration Icon */}
               <div className="mx-auto w-14 h-14 bg-indigo-50 text-indigo-650 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle weight="fill" className="w-8 h-8 text-indigo-600" />
+                <Confetti weight="fill" className="w-8 h-8 text-indigo-600 animate-bounce" />
               </div>
               
               <h3 className="text-base font-extrabold text-slate-800 mb-2" style={{ fontFamily: 'var(--font-jakarta)' }}>
-                Sesi Selesai! 🎉
+                Sesi Selesai!
               </h3>
               
               <p className="text-xs text-slate-500 leading-relaxed mb-6">
