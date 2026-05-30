@@ -283,8 +283,16 @@ export default function Home() {
     const formData = new FormData();
     formData.append("file", file);
 
+    const headers: Record<string, string> = {};
+    if (typeof window !== "undefined") {
+      const savedKey = localStorage.getItem("cv_redflag_gemini_api_key") || "";
+      if (savedKey) {
+        headers["x-gemini-key"] = savedKey;
+      }
+    }
+
     try {
-      const res = await fetch("/api/parse", { method: "POST", body: formData });
+      const res = await fetch("/api/parse", { method: "POST", headers, body: formData });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to extract PDF text");
@@ -309,8 +317,16 @@ export default function Home() {
     const formData = new FormData();
     formData.append("file", file);
 
+    const headers: Record<string, string> = {};
+    if (typeof window !== "undefined") {
+      const savedKey = localStorage.getItem("cv_redflag_gemini_api_key") || "";
+      if (savedKey) {
+        headers["x-gemini-key"] = savedKey;
+      }
+    }
+
     try {
-      const res = await fetch("/api/parse", { method: "POST", body: formData });
+      const res = await fetch("/api/parse", { method: "POST", headers, body: formData });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to extract JD PDF text");

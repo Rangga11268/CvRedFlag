@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
 
     // Handle image files with Gemini Vision API / Tesseract OCR
     if (file.type.startsWith("image/")) {
-      const geminiKey = process.env.GEMINI_API_KEY;
+      const clientGeminiKey = req.headers.get("x-gemini-key");
+      const geminiKey = clientGeminiKey || process.env.GEMINI_API_KEY;
       if (geminiKey) {
         try {
           const base64Data = buffer.toString("base64");
