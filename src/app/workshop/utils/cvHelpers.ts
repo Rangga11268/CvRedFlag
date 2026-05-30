@@ -148,10 +148,10 @@ export const getCVStyles = (temp: "serif" | "sans" | "compact", force1Page: bool
       padding:${pageMargin};
     }
     .cv-header{text-align:center;margin-bottom:${spacingTop}}
-    .cv-header h1{font-family:${h1Font};font-size:${h1FontSize};font-weight:bold;text-transform:uppercase;margin-bottom:1.5mm;letter-spacing:-0.2px}
-    .cv-header p{font-size:${bodyFontSize};color:#333;margin-bottom:1mm}
-    .cv-header p:first-of-type{font-size:${bodyFontSize};color:#111;font-weight:bold;text-transform:uppercase;margin-bottom:1.5mm}
-    .cv-header p a{color:#111;text-decoration:none}
+    .cv-header h1{font-family:${h1Font};font-size:${h1FontSize};font-weight:bold;text-transform:uppercase;margin-bottom:1.2mm;letter-spacing:-0.2px}
+    .cv-header p{font-size:${force1Page ? "7.5pt" : "8.5pt"};color:#4b5563;margin-bottom:0.8mm;font-weight:normal}
+    .cv-header p:first-of-type{font-size:${force1Page ? "8.5pt" : "9.5pt"};color:#111;font-weight:bold;text-transform:uppercase;margin-bottom:1.2mm}
+    .cv-header p a{color:#4b5563;text-decoration:none}
     .cv-header p a:hover{text-decoration:underline}
     .cv-availability-box{
       display:inline-block;
