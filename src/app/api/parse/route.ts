@@ -65,7 +65,10 @@ export async function POST(req: NextRequest) {
       // Fallback to Tesseract OCR if Gemini fails or key is missing
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const Tesseract = require("tesseract.js");
-      const { data: { text } } = await Tesseract.recognize(buffer, "eng");
+      const { data: { text } } = await Tesseract.recognize(buffer, "eng", {
+        langPath: process.cwd(),
+        cachePath: process.cwd()
+      });
       return NextResponse.json({ text, info: { Title: "Image OCR (Tesseract)" }, numPages: 1 });
     }
 
