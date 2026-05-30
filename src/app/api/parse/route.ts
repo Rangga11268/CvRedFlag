@@ -14,12 +14,59 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Handle image files with Tesseract OCR
+    // Handle image files with Gemini Vision API / Tesseract OCR
     if (file.type.startsWith("image/")) {
+      const geminiKey = process.env.GEMINI_API_KEY;
+      if (geminiKey) {
+        try {
+          const base64Data = buffer.toString("base64");
+          const geminiModel = "gemini-2.5-flash";
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`;
+          
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: "Extract and transcribe all text from this job description image. Maintain the original layout and line breaks. Return ONLY the transcribed text without any conversational preamble or comments." },
+                    {
+                      inlineData: {
+                        mimeType: file.type,
+                        data: base64Data
+                      }
+                    }
+                  ]
+                }
+              ],
+              generationConfig: {
+                temperature: 0.1
+              }
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            if (text.trim()) {
+              return NextResponse.json({ text, info: { Title: "Image OCR (Gemini)" }, numPages: 1 });
+            }
+          } else {
+            console.warn("Gemini vision parse failed:", await response.text());
+          }
+        } catch (e: any) {
+          console.error("Gemini vision parse exception:", e);
+        }
+      }
+
+      // Fallback to Tesseract OCR if Gemini fails or key is missing
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const Tesseract = require("tesseract.js");
       const { data: { text } } = await Tesseract.recognize(buffer, "eng");
-      return NextResponse.json({ text, info: { Title: "Image OCR" }, numPages: 1 });
+      return NextResponse.json({ text, info: { Title: "Image OCR (Tesseract)" }, numPages: 1 });
     }
 
     // Handle PDF with pdf-parse v1.1.1 (CommonJS, no worker needed)

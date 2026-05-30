@@ -1,5 +1,5 @@
 import React from "react";
-import { CaretRight, ArrowClockwise, FileArrowDown } from "@phosphor-icons/react";
+import { CaretRight, ArrowClockwise, FileArrowDown, CheckCircle } from "@phosphor-icons/react";
 
 interface WorkshopHeaderProps {
   pdfFile: File | null;
@@ -45,12 +45,16 @@ const WorkshopHeader: React.FC<WorkshopHeaderProps> = ({
         </a>
         {currentStep > 0 && (
           <button
-            onClick={handleReset}
+            onClick={currentStep === 3 ? () => { window.location.href = "/"; } : handleReset}
             className="flex items-center gap-1 px-2.5 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-semibold rounded-xl cursor-pointer border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] transition-all hover:scale-[1.02]"
             style={{ color: 'var(--text-secondary)' }}
           >
-            <ArrowClockwise weight="bold" className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
-            <span className="hidden xs:inline">Start Over</span>
+            {currentStep === 3 ? (
+              <CheckCircle weight="bold" className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-emerald-600" />
+            ) : (
+              <ArrowClockwise weight="bold" className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
+            )}
+            <span className="hidden xs:inline">{currentStep === 3 ? "Finish" : "Start Over"}</span>
           </button>
         )}
         {currentStep === 3 && (
