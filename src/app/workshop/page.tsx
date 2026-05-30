@@ -9,6 +9,7 @@ import {
   Tag,
   CheckCircle,
   ArrowClockwise,
+  ArrowCounterClockwise,
   DownloadSimple,
   CaretRight,
   Eye,
@@ -26,6 +27,11 @@ import {
   Rocket,
   SealCheck,
   FileArrowDown,
+  User,
+  Cpu,
+  Folder,
+  GraduationCap,
+  Certificate,
 } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { marked } from "marked";
@@ -102,6 +108,58 @@ const getRedFlagKeyTerms = (flags: string[]) => {
   return Array.from(new Set(terms));
 };
 
+const sectionsConfig = [
+  {
+    key: "header",
+    title: "Profil & Informasi Kontak",
+    icon: User,
+    description: "Nama lengkap, profesi, domisili, email, nomor HP, dan link sosial media/portofolio.",
+    placeholder: "Contoh:\nJohn Doe\nJakarta, Indonesia | +62 812-3456-7890 | john.doe@email.com | linkedin.com/in/johndoe"
+  },
+  {
+    key: "summary",
+    title: "Ringkasan Profesional",
+    icon: FileText,
+    description: "Pernyataan singkat (2-4 kalimat) yang merangkum latar belakang, keahlian utama, dan tujuan karir Anda.",
+    placeholder: "Contoh:\nSoftware Engineer berpengalaman lebih dari 3 tahun dalam pengembangan aplikasi web menggunakan React, Node.js, dan cloud computing..."
+  },
+  {
+    key: "skills",
+    title: "Keahlian & Kompetensi",
+    icon: Cpu,
+    description: "Daftar keterampilan teknis, alat (tools), bahasa, atau keahlian soft-skills.",
+    placeholder: "Contoh:\n* Pemrograman: JavaScript, TypeScript, Python, SQL\n* Framework & Libraries: React, Next.js, Node.js, Express, Tailwind CSS\n* Tools & Database: Git, Docker, AWS, PostgreSQL, MongoDB"
+  },
+  {
+    key: "experience",
+    title: "Pengalaman Kerja",
+    icon: Briefcase,
+    description: "Riwayat pekerjaan, jabatan, perusahaan, durasi, serta deskripsi pekerjaan Anda.",
+    placeholder: "Contoh:\n### Software Engineer | PT Teknologi Maju (Januari 2022 - Sekarang)\n* Mengembangkan dan memelihara aplikasi web menggunakan Next.js yang meningkatkan retensi pengguna sebesar 15%\n* Berkolaborasi dengan tim produk untuk mendesain arsitektur database PostgreSQL yang lebih efisien"
+  },
+  {
+    key: "projects",
+    title: "Proyek Portfolio",
+    icon: Folder,
+    description: "Proyek-proyek penting yang pernah Anda kerjakan secara mandiri maupun tim.",
+    placeholder: "Contoh:\n### E-Commerce Platform | Next.js, Stripe, PostgreSQL\n* Membangun platform e-commerce tangguh dengan fitur pembayaran online terintegrasi\n* Mengoptimalkan performa loading halaman hingga 40% menggunakan Server-Side Rendering"
+  },
+  {
+    key: "education",
+    title: "Pendidikan",
+    icon: GraduationCap,
+    description: "Riwayat pendidikan formal, institusi, jurusan, tahun kelulusan, dan IPK jika ada.",
+    placeholder: "Contoh:\n### Sarjana Ilmu Komputer | Universitas Indonesia (2018 - 2022)\n* IPK: 3.85 / 4.00 (Cum Laude)\n* Mata Kuliah Utama: Algoritma, Basis Data, Rekayasa Perangkat Lunak"
+  },
+  {
+    key: "certifications",
+    title: "Sertifikasi & Lisensi",
+    icon: Certificate,
+    description: "Sertifikat keahlian, kursus, atau lisensi profesional yang mendukung profesi Anda.",
+    placeholder: "Contoh:\n* AWS Certified Solutions Architect (2023)\n* Google IT Support Professional Certificate (2022)\n* Juara 1 Hackathon Nasional (2021)"
+  }
+];
+
 export default function Home() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [jobDescription, setJobDescription] = useState<string>("");
@@ -134,6 +192,156 @@ export default function Home() {
   const [canvasHeight, setCanvasHeight] = useState<number>(1123);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [editorMode, setEditorMode] = useState<"visual" | "raw">("visual");
+  const [expandedSection, setExpandedSection] = useState<string | null>("header");
+
+  // Undo/Redo System
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const [hasDraft, setHasDraft] = useState<boolean>(false);
+  const undoRef = useRef<{ timer: NodeJS.Timeout | null; lastPushedText: string }>({ timer: null, lastPushedText: "" });
+
+  // Initialize history with starting CV text or editable CV when it changes for the first time
+  useEffect(() => {
+    const startText = editableCV || cvText;
+    if (startText && history.length === 0) {
+      setHistory([startText]);
+      setHistoryIndex(0);
+      undoRef.current.lastPushedText = startText;
+    }
+  }, [cvText, editableCV, history.length]);
+
+  // Check for saved draft in localStorage on load
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const draft = localStorage.getItem("cv_editor_draft");
+      if (draft && draft.trim() !== "") {
+        const currentText = editableCV || cvText;
+        if (currentText && draft.trim() !== currentText.trim()) {
+          setHasDraft(true);
+        }
+      }
+    }
+  }, [cvText]);
+
+  const handleRestoreDraft = () => {
+    if (typeof window !== "undefined") {
+      const draft = localStorage.getItem("cv_editor_draft");
+      if (draft) {
+        updateCV(draft, true);
+        setHasDraft(false);
+        showToast("Draf pengeditan berhasil dipulihkan!", "success");
+      }
+    }
+  };
+
+  const handleClearDraft = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cv_editor_draft");
+      setHasDraft(false);
+      showToast("Draf diabaikan.", "info");
+    }
+  };
+
+  // Smooth scroll to active section card
+  useEffect(() => {
+    if (expandedSection && editorMode === "visual" && activeTab === "raw") {
+      const timer = setTimeout(() => {
+        const activeEl = document.getElementById(`section-card-${expandedSection}`);
+        if (activeEl) {
+          activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [expandedSection, editorMode, activeTab]);
+
+  const pushToHistory = (newText: string, immediate: boolean = false) => {
+    if (undoRef.current.timer) {
+      clearTimeout(undoRef.current.timer);
+      undoRef.current.timer = null;
+    }
+
+    const doPush = (val: string) => {
+      if (val === undoRef.current.lastPushedText) return;
+      
+      setHistory(prev => {
+        const nextHist = prev.slice(0, historyIndex + 1);
+        if (nextHist.length >= 100) { // Limit size to 100 states
+          nextHist.shift();
+        }
+        const updated = [...nextHist, val];
+        setHistoryIndex(updated.length - 1);
+        return updated;
+      });
+      undoRef.current.lastPushedText = val;
+    };
+
+    if (immediate) {
+      doPush(newText);
+    } else {
+      undoRef.current.timer = setTimeout(() => {
+        doPush(newText);
+      }, 500); // 500ms debounce for typing
+    }
+  };
+
+  const updateCV = (newText: string, immediate: boolean = false) => {
+    setEditableCV(newText);
+    pushToHistory(newText, immediate);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cv_editor_draft", newText);
+    }
+  };
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      const val = history[newIndex];
+      setEditableCV(val);
+      undoRef.current.lastPushedText = val;
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      const val = history[newIndex];
+      setEditableCV(val);
+      undoRef.current.lastPushedText = val;
+    }
+  };
+
+  // Keyboard listener for Ctrl+Z and Ctrl+Y
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (activeTab !== "raw") return;
+
+      const isMac = typeof window !== "undefined" && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+      if (cmdOrCtrl && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      } else if (cmdOrCtrl && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [history, historyIndex, activeTab]);
+
+
 
   // Generate object URL for PDF file preview if available
   useEffect(() => {
@@ -739,19 +947,21 @@ ${bodyHtml}
         letter-spacing:1.5px;
         margin-bottom:0.5mm;
       }
+      .cv-header p {
+        text-align: center;
+        font-size:${force1Page ? "8.5pt" : "9.5pt"};
+        color:#333;
+        margin-bottom:0.5mm;
+        line-height:1.3;
+      }
       .cv-header p:first-of-type {
+        text-align: center;
         font-size:${force1Page ? "9.5pt" : "10.5pt"};
         font-weight:700;
         text-transform:uppercase;
         letter-spacing:1px;
         margin-bottom:${force1Page ? "1mm" : "1.5mm"};
         color:#111;
-      }
-      .cv-header p {
-        font-size:${force1Page ? "8.5pt" : "9.5pt"};
-        color:#333;
-        margin-bottom:0.5mm;
-        line-height:1.3;
       }
       .cv-header a {
         color:#333;
@@ -869,6 +1079,112 @@ ${bodyHtml}
     return formattedLines.join("\n");
   };
 
+  const parseMarkdownToSections = (markdown: string) => {
+    const sections: Record<string, string> = {
+      header: "",
+      summary: "",
+      skills: "",
+      experience: "",
+      projects: "",
+      education: "",
+      certifications: ""
+    };
+
+    if (!markdown) return sections;
+
+    const lines = markdown.split("\n");
+    let currentSection = "header";
+    const sectionContent: Record<string, string[]> = {
+      header: [],
+      summary: [],
+      skills: [],
+      experience: [],
+      projects: [],
+      education: [],
+      certifications: []
+    };
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (line.startsWith("##")) {
+        const heading = trimmed.toLowerCase();
+        if (heading.includes("summary") || heading.includes("professional summary") || heading.includes("tentang saya") || heading.includes("ringkasan")) {
+          currentSection = "summary";
+        } else if (heading.includes("skill") || heading.includes("keahlian") || heading.includes("kemampuan")) {
+          currentSection = "skills";
+        } else if (heading.includes("experience") || heading.includes("kerja") || heading.includes("magang") || heading.includes("employment")) {
+          currentSection = "experience";
+        } else if (heading.includes("project") || heading.includes("proyek")) {
+          currentSection = "projects";
+        } else if (heading.includes("education") || heading.includes("pendidikan")) {
+          currentSection = "education";
+        } else if (heading.includes("cert") || heading.includes("sertifikasi") || heading.includes("prestasi")) {
+          currentSection = "certifications";
+        } else {
+          sectionContent[currentSection].push(line);
+        }
+      } else {
+        sectionContent[currentSection].push(line);
+      }
+    }
+
+    sections.header = sectionContent.header.join("\n").trim();
+    sections.summary = sectionContent.summary.join("\n").trim();
+    sections.skills = sectionContent.skills.join("\n").trim();
+    sections.experience = sectionContent.experience.join("\n").trim();
+    sections.projects = sectionContent.projects.join("\n").trim();
+    sections.education = sectionContent.education.join("\n").trim();
+    sections.certifications = sectionContent.certifications.join("\n").trim();
+
+    return sections;
+  };
+
+  const handleSectionChange = (sectionKey: string, newContent: string, immediate: boolean = false) => {
+    const currentSections = parseMarkdownToSections(editableCV || cvText);
+    currentSections[sectionKey] = newContent;
+    
+    let md = "";
+    
+    if (currentSections.header) {
+      md += currentSections.header + "\n\n";
+    }
+
+    const getOriginalHeading = (key: string) => {
+      const lines = (editableCV || cvText).split("\n");
+      for (const line of lines) {
+        if (line.startsWith("##")) {
+          const trimmed = line.trim();
+          const heading = trimmed.toLowerCase();
+          if (key === "summary" && (heading.includes("summary") || heading.includes("tentang saya") || heading.includes("ringkasan"))) return trimmed;
+          if (key === "skills" && (heading.includes("skill") || heading.includes("keahlian") || heading.includes("kemampuan"))) return trimmed;
+          if (key === "experience" && (heading.includes("experience") || heading.includes("kerja") || heading.includes("magang") || heading.includes("employment"))) return trimmed;
+          if (key === "projects" && (heading.includes("project") || heading.includes("proyek"))) return trimmed;
+          if (key === "education" && (heading.includes("education") || heading.includes("pendidikan"))) return trimmed;
+          if (key === "certifications" && (heading.includes("cert") || heading.includes("sertifikasi") || heading.includes("prestasi"))) return trimmed;
+        }
+      }
+      
+      const isIndo = cvLanguage === "id" || (cvLanguage === "auto" && (editableCV || cvText).toLowerCase().includes("pengalaman"));
+      if (key === "summary") return isIndo ? "## TENTANG SAYA" : "## PROFESSIONAL SUMMARY";
+      if (key === "skills") return isIndo ? "## KEAHLIAN TEKNIS" : "## TECHNICAL SKILLS";
+      if (key === "experience") return isIndo ? "## PENGALAMAN KERJA" : "## WORK EXPERIENCE";
+      if (key === "projects") return isIndo ? "## PROYEK UTAMA" : "## PROJECTS";
+      if (key === "education") return isIndo ? "## PENDIDIKAN" : "## EDUCATION";
+      if (key === "certifications") return isIndo ? "## SERTIFIKASI" : "## CERTIFICATIONS";
+      return "";
+    };
+
+    const keys = ["summary", "skills", "experience", "projects", "education", "certifications"];
+    for (const key of keys) {
+      if (currentSections[key] !== undefined) {
+        const heading = getOriginalHeading(key);
+        md += heading + "\n" + currentSections[key] + "\n\n";
+      }
+    }
+
+    updateCV(md.trim(), immediate);
+  };
+
   const renderCV = (md: string): string => {
     marked.setOptions({ gfm: true, breaks: true });
     let html = marked.parse(md) as string;
@@ -879,8 +1195,10 @@ ${bodyHtml}
       html = `<div class="cv-header">${html.substring(0, h2Index)}</div>${html.substring(h2Index)}`;
     }
     
-    // Format availability box
-    html = html.replace(/<p>Availability:\s*(.*?)<\/p>/gi, '<div class="cv-availability-box">Availability: $1</div>');
+    // Format availability box (more robust to match italicized/bolded availability text)
+    html = html.replace(/<p>(\s*(?:<em>|<strong>)?Availability:[\s\S]*?)<\/p>/gi, (match, innerContent) => {
+      return `<div class="cv-availability-box">${innerContent}</div>`;
+    });
     
     // Format h3 headers with pipes for left-right alignment
     const isRightAlignedInfo = (str: string) => {
@@ -991,6 +1309,7 @@ ${bodyHtml}
   const { topPx, horizPx } = getPaddingValues(selectedTemplate, forceSinglePage);
   const pageCount = forceSinglePage ? 1 : Math.max(1, Math.ceil(canvasHeight / 1123));
   const isMultiPage = pageCount > 1 && !forceSinglePage && currentStep > 0;
+  const parsedSections = parseMarkdownToSections(editableCV || cvText);
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-base)] flex flex-col selection:bg-indigo-500/10 selection:text-indigo-900" style={{ color: 'var(--text-primary)', fontFamily: "var(--font-inter,'Inter',system-ui,sans-serif)" }}>
@@ -1555,7 +1874,7 @@ ${bodyHtml}
                         }`}
                         style={{ fontFamily: 'var(--font-jakarta)' }}
                       >
-                        {tab === "preview" ? "A4 Preview" : tab === "raw" ? "Raw Editor" : tab === "diff" ? "Diff View" : "Cover Letter"}
+                        {tab === "preview" ? "A4 Preview" : tab === "raw" ? "Editor CV" : tab === "diff" ? "Diff View" : "Cover Letter"}
                       </button>
                     ))}
                   </div>
@@ -1661,19 +1980,254 @@ ${bodyHtml}
 
                 {activeTab === "raw" ? (
                   <div className="flex flex-col w-full min-h-[600px]">
-                    <div className="no-print p-3 border-b text-[11px] flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-medium bg-indigo-50/40 text-indigo-800 border-[var(--border)]">
-                      <span className="flex items-center gap-1.5">
-                        <MagicWand weight="bold" className="w-3.5 h-3.5 shrink-0 text-indigo-600" />
-                        <span><strong>CV Builder Mode:</strong> Anda bisa mengedit, menambah, atau menempelkan (paste) pengalaman baru di editor Markdown ini.</span>
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase" style={{ fontFamily: 'var(--font-jakarta)' }}>Markdown Editor</span>
+                    <div className="no-print p-3.5 border-b text-[11px] flex flex-col md:flex-row sm:items-center justify-between gap-3 font-medium bg-slate-50/80 text-slate-800 border-[var(--border)]">
+                      <div className="flex flex-col gap-1">
+                        <span className="flex items-center gap-1.5">
+                          <MagicWand weight="bold" className="w-3.5 h-3.5 shrink-0 text-indigo-600" />
+                          <span className="font-bold text-slate-700">Mode Edit CV</span>
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-normal">
+                          {editorMode === "visual" 
+                            ? "Sunting CV Anda dengan mudah melalui form per bagian di bawah ini." 
+                            : "Gunakan editor raw Markdown untuk kontrol teks penuh."}
+                        </span>
+                      </div>
+                      
+                      {/* Controls Area */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Undo / Redo Buttons */}
+                        <div className="flex items-center bg-slate-200/60 p-0.5 rounded-lg border border-slate-200/30">
+                          <button
+                            type="button"
+                            onClick={handleUndo}
+                            disabled={historyIndex <= 0}
+                            className="p-1 px-2.5 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-slate-650 hover:bg-white disabled:hover:bg-transparent"
+                            title="Kembalikan perubahan terakhir (Ctrl+Z)"
+                          >
+                            <ArrowCounterClockwise weight="bold" className="w-3.5 h-3.5" />
+                            Undo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleRedo}
+                            disabled={historyIndex >= history.length - 1}
+                            className="p-1 px-2.5 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-slate-650 hover:bg-white disabled:hover:bg-transparent"
+                            title="Ulangi perubahan yang dibatalkan (Ctrl+Y)"
+                          >
+                            <ArrowClockwise weight="bold" className="w-3.5 h-3.5" />
+                            Redo
+                          </button>
+                        </div>
+
+                        {/* Segmented Control Toggle */}
+                        <div className="flex items-center bg-slate-200/60 p-0.5 rounded-lg border border-slate-200/30">
+                          <button
+                            type="button"
+                            onClick={() => setEditorMode("visual")}
+                            className={`px-3 py-1 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer ${
+                              editorMode === "visual"
+                                ? "bg-white text-indigo-600 shadow-3xs"
+                                : "text-slate-500 hover:text-slate-800"
+                            }`}
+                          >
+                            <Sparkle weight="bold" className="w-3 h-3" />
+                            Visual Form (Mudah)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditorMode("raw")}
+                            className={`px-3 py-1 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer ${
+                              editorMode === "raw"
+                                ? "bg-white text-indigo-600 shadow-3xs"
+                                : "text-slate-500 hover:text-slate-800"
+                            }`}
+                          >
+                            <MagicWand weight="bold" className="w-3 h-3" />
+                            Raw Markdown (Lanjutan)
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <textarea
-                      value={editableCV}
-                      onChange={(e) => setEditableCV(e.target.value)}
-                      className="w-full flex-1 p-5 text-xs leading-relaxed focus:outline-none resize-none"
-                      style={{ background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', border: 'none' }}
-                    />
+
+                    {hasDraft && (
+                      <div className="no-print mx-5 mt-3 p-3 rounded-xl border border-amber-200 bg-amber-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[11px] font-medium text-amber-800 animate-fade-in shadow-3xs">
+                        <span className="flex items-center gap-2">
+                          <Info weight="fill" className="w-4 h-4 text-amber-500 shrink-0" />
+                          <span>Draf perubahan pengeditan CV sebelumnya terdeteksi. Apakah Anda ingin memulihkannya?</span>
+                        </span>
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                          <button
+                            type="button"
+                            onClick={handleRestoreDraft}
+                            className="px-3 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white font-bold transition-colors cursor-pointer font-sans text-[10px]"
+                          >
+                            Pulihkan Draf
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleClearDraft}
+                            className="px-2 py-1 rounded hover:bg-amber-100 text-amber-700 transition-colors cursor-pointer font-sans text-[10px]"
+                          >
+                            Abaikan
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {editorMode === "raw" ? (
+                      <textarea
+                        value={editableCV}
+                        onChange={(e) => updateCV(e.target.value, false)}
+                        className="w-full flex-1 p-5 text-xs leading-relaxed focus:outline-none resize-none min-h-[500px]"
+                        style={{ background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', border: 'none' }}
+                        placeholder="Ketik CV Anda di sini dalam format Markdown..."
+                      />
+                    ) : (
+                      <div className="flex flex-col gap-3.5 p-5 bg-slate-50/50 max-h-[600px] overflow-y-auto">
+                        {sectionsConfig.map((sec) => {
+                          const IconComponent = sec.icon;
+                          const sectionContent = (parsedSections[sec.key] || "").trim();
+                          const isExpanded = expandedSection === sec.key;
+                          const isFilled = sectionContent.length > 0;
+                          
+                          return (
+                            <div 
+                              key={sec.key} 
+                              id={`section-card-${sec.key}`}
+                              className={`border rounded-xl transition-all duration-200 bg-white ${
+                                isExpanded 
+                                  ? "border-indigo-200 shadow-sm" 
+                                  : "border-[var(--border)] hover:border-slate-300 shadow-3xs"
+                              }`}
+                            >
+                              {/* Card Header */}
+                              <div 
+                                onClick={() => setExpandedSection(isExpanded ? null : sec.key)}
+                                className="flex items-center justify-between p-3.5 cursor-pointer select-none"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`p-2 rounded-lg transition-colors ${
+                                    isExpanded 
+                                      ? "bg-indigo-50 text-indigo-600" 
+                                      : "bg-slate-100 text-slate-500"
+                                  }`}>
+                                    <IconComponent weight={isExpanded ? "fill" : "bold"} className="w-4 h-4" />
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className={`text-xs font-bold ${
+                                      isExpanded ? "text-indigo-600" : "text-slate-700"
+                                    }`}>
+                                      {sec.title}
+                                    </span>
+                                    {!isExpanded && (
+                                      <span className="text-[10px] text-slate-400 line-clamp-1 max-w-[280px] sm:max-w-[400px]">
+                                        {isFilled ? sectionContent : sec.description}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {isFilled ? (
+                                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
+                                      <CheckCircle weight="fill" className="w-2.5 h-2.5" />
+                                      Terisi
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">
+                                      Kosong
+                                    </span>
+                                  )}
+                                  <CaretRight 
+                                    weight="bold" 
+                                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                                      isExpanded ? "rotate-90 text-indigo-500" : ""
+                                    }`} 
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Card Content (Accordion Body) */}
+                              {isExpanded && (
+                                <div className="px-4 pb-4 pt-2 border-t border-slate-100 animate-fade-in flex flex-col gap-2.5">
+                                  <p className="text-[11px] text-slate-500 leading-normal bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                    {sec.description}
+                                  </p>
+                                  <div className="relative">
+                                    <textarea
+                                      value={parsedSections[sec.key] || ""}
+                                      onChange={(e) => handleSectionChange(sec.key, e.target.value)}
+                                      placeholder={sec.placeholder}
+                                      className="w-full min-h-[140px] max-h-[300px] p-3 pb-12 text-xs leading-relaxed rounded-lg border border-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 bg-slate-50/20 text-slate-700 resize-y"
+                                      style={{ fontFamily: 'var(--font-jakarta)' }}
+                                    />
+                                    {/* Action toolbar inside the textarea container */}
+                                    <div className="absolute left-2.5 bottom-2.5 right-2.5 flex items-center justify-between bg-white/95 px-2.5 py-1.5 rounded-md border border-slate-200/60 shadow-3xs">
+                                      <div className="flex items-center gap-1.5">
+                                        {["experience", "projects", "skills", "education", "certifications"].includes(sec.key) && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const currentVal = parsedSections[sec.key] || "";
+                                              const newVal = currentVal + (currentVal ? "\n" : "") + "* ";
+                                              handleSectionChange(sec.key, newVal, true);
+                                            }}
+                                            className="text-[9px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded border border-indigo-100 transition-colors flex items-center gap-1 cursor-pointer font-sans"
+                                          >
+                                            <span>+ Poin Daftar (Bullet Point)</span>
+                                          </button>
+                                        )}
+                                        {sec.key === "experience" && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const currentVal = parsedSections[sec.key] || "";
+                                              const newVal = currentVal + (currentVal ? "\n" : "") + "### Jabatan | Nama Perusahaan (Bulan Tahun - Bulan Tahun)\n* Tanggung jawab utama atau pencapaian kerja...";
+                                              handleSectionChange(sec.key, newVal, true);
+                                            }}
+                                            className="text-[9px] font-bold text-slate-600 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 px-2 py-1 rounded border border-slate-200 transition-colors flex items-center gap-1 cursor-pointer font-sans"
+                                          >
+                                            <span>+ Template Kerja Baru</span>
+                                          </button>
+                                        )}
+                                        {sec.key === "projects" && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const currentVal = parsedSections[sec.key] || "";
+                                              const newVal = currentVal + (currentVal ? "\n" : "") + "### Nama Proyek | Teknologi Yang Digunakan\n* Deskripsi proyek, peran Anda, dan hasil...";
+                                              handleSectionChange(sec.key, newVal, true);
+                                            }}
+                                            className="text-[9px] font-bold text-slate-600 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 px-2 py-1 rounded border border-slate-200 transition-colors flex items-center gap-1 cursor-pointer font-sans"
+                                          >
+                                            <span>+ Template Proyek Baru</span>
+                                          </button>
+                                        )}
+                                        {sec.key === "education" && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const currentVal = parsedSections[sec.key] || "";
+                                              const newVal = currentVal + (currentVal ? "\n" : "") + "### Gelar / Jurusan | Nama Universitas (Tahun Mulai - Tahun Selesai)\n* IPK: X.XX / 4.00\n* Deskripsi singkat atau pencapaian...";
+                                              handleSectionChange(sec.key, newVal, true);
+                                            }}
+                                            className="text-[9px] font-bold text-slate-600 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 px-2 py-1 rounded border border-slate-200 transition-colors flex items-center gap-1 cursor-pointer font-sans"
+                                          >
+                                            <span>+ Template Pendidikan</span>
+                                          </button>
+                                        )}
+                                      </div>
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase">
+                                        {(parsedSections[sec.key] || "").length} Karakter
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 ) : activeTab === "diff" ? (
                   <div className="w-full min-h-[600px] grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50">
@@ -1835,7 +2389,7 @@ ${bodyHtml}
                     {currentStep === 3 && (
                       <div className="no-print p-3 border-b text-[11px] flex items-center gap-2 font-medium" style={{ background: 'rgba(79,70,229,0.03)', borderColor: 'rgba(79,70,229,0.1)', color: 'var(--accent)' }}>
                         <PencilSimple weight="bold" className="w-3 h-3 shrink-0" />
-                        <span>Pratinjau Format — Pindah ke <strong>Raw Editor</strong> untuk mengedit, menambah, atau menempelkan pengalaman baru.</span>
+                        <span>Pratinjau Format — Pindah ke <strong>Editor CV</strong> untuk mengedit, menambah, atau menempelkan pengalaman baru.</span>
                       </div>
                     )}
                     {isMultiPage && (
@@ -2089,7 +2643,7 @@ ${bodyHtml}
                     <MagicWand weight="bold" className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Re-optimize / Refine Added Text
                   </button>
                   <p className="text-[9px] text-[var(--text-muted)] font-medium leading-relaxed text-center" style={{ fontFamily: 'var(--font-jakarta)' }}>
-                    Jika Anda mengedit/menambah pengalaman di <strong>Raw Editor</strong>, klik <strong>Re-scan</strong> untuk menilai ulang skor ATS atau <strong>Re-optimize</strong> untuk memformat penulisan Anda dengan AI.
+                    Jika Anda mengedit/menambah pengalaman di <strong>Editor CV</strong>, klik <strong>Re-scan</strong> untuk menilai ulang skor ATS atau <strong>Re-optimize</strong> untuk memformat penulisan Anda dengan AI.
                   </p>
                   <button onClick={handleDownloadPDF}
                     className="w-full py-3 rounded-xl text-sm font-bold cursor-pointer transition-all flex items-center justify-center gap-2"

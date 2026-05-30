@@ -166,7 +166,19 @@ textarea { resize: vertical; }
   font-size: 14pt;
 }
 
+.pdf-canvas .cv-header p {
+  text-align: center;
+  font-size: 9.5pt;
+  color: #333;
+  margin-bottom: 0.5mm;
+  line-height: 1.3;
+}
+.pdf-canvas.cv-single-page .cv-header p {
+  font-size: 8.5pt;
+}
+
 .pdf-canvas .cv-header p:first-of-type {
+  text-align: center;
   font-size: 10.5pt;
   font-weight: 700;
   text-transform: uppercase;
@@ -177,16 +189,6 @@ textarea { resize: vertical; }
 .pdf-canvas.cv-single-page .cv-header p:first-of-type {
   font-size: 9.5pt;
   margin-bottom: 1mm;
-}
-
-.pdf-canvas .cv-header p {
-  font-size: 9.5pt;
-  color: #333;
-  margin-bottom: 0.5mm;
-  line-height: 1.3;
-}
-.pdf-canvas.cv-single-page .cv-header p {
-  font-size: 8.5pt;
 }
 .pdf-canvas .cv-header a {
   color: #333;
