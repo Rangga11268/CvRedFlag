@@ -23,7 +23,6 @@ import WorkshopHeader from "./components/WorkshopHeader";
 import UploadPage from "./components/UploadPage";
 import ATSAnalyzerPanel from "./components/ATSAnalyzerPanel";
 import CVControlsBar from "./components/CVControlsBar";
-import SettingsModal from "./components/SettingsModal";
 
 // Custom Hooks
 import { useToast } from "./hooks/useToast";
@@ -56,7 +55,6 @@ export default function Home() {
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [editorMode, setEditorMode] = useState<"visual" | "raw">("visual");
   const [expandedSection, setExpandedSection] = useState<string | null>("header");
-  const [showSettings, setShowSettings] = useState<boolean>(false);
 
   const { toasts, showToast, removeToast } = useToast();
 
@@ -334,14 +332,6 @@ export default function Home() {
     const requestLang = lang || coverLetterLang;
     const requestFmt = fmt || coverLetterFormat;
     const requestTone = tOption || coverLetterTone;
-
-    let geminiKey = "";
-    let openrouterKey = "";
-    if (typeof window !== "undefined") {
-      geminiKey = localStorage.getItem("cv_redflag_gemini_api_key") || "";
-      openrouterKey = localStorage.getItem("cv_redflag_openrouter_api_key") || "";
-    }
-
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -354,8 +344,6 @@ export default function Home() {
           format: requestFmt,
           jobCategory,
           tone: requestTone,
-          ...(geminiKey ? { geminiApiKey: geminiKey } : {}),
-          ...(openrouterKey ? { openrouterApiKey: openrouterKey } : {}),
         })
       });
       if (!res.ok) throw new Error("Failed to generate cover letter");
@@ -480,7 +468,6 @@ export default function Home() {
         currentStep={currentStep}
         handleReset={handleReset}
         handleDownloadPDF={handleDownloadPDF}
-        onSettingsClick={() => setShowSettings(true)}
       />
 
       {/* ── Main Content ────────────────────────────────────────── */}
@@ -693,12 +680,6 @@ export default function Home() {
         )}
 
       </div>
-
-      <SettingsModal
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        showToast={showToast}
-      />
     </div>
   );
 }
