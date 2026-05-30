@@ -174,6 +174,10 @@ export const getCVStyles = (temp: "serif" | "sans" | "compact", force1Page: bool
     strong{font-weight:bold;color:#000}
     em{font-style:italic}
     
+    @page {
+      size: auto;
+      margin: 0mm !important;
+    }
     @media print {
       body {
         padding:${pageMargin} !important;

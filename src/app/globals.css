@@ -278,6 +278,10 @@ textarea { resize: vertical; }
 .pdf-canvas a { color: #111; }
 
 /* ── Print ──────────────────────────────────────────── */
+@page {
+  size: auto;
+  margin: 0mm !important;
+}
 @media print {
   body { background: white !important; color: black !important; }
   .no-print { display: none !important; }
