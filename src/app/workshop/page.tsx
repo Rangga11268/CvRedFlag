@@ -312,7 +312,7 @@ export default function Home() {
 
     const keys = ["summary", "skills", "experience", "projects", "education", "certifications"];
     for (const key of keys) {
-      if (currentSections[key] !== undefined) {
+      if (currentSections[key] !== undefined && currentSections[key].trim() !== "") {
         const heading = getOriginalHeading(key);
         md += heading + "\n" + currentSections[key] + "\n\n";
       }
@@ -473,18 +473,20 @@ export default function Home() {
                 </div>
 
                 {/* Row 2: CV Configuration Controls */}
-                <CVControlsBar
-                  currentStep={currentStep}
-                  jobCategory={jobCategory}
-                  cvLanguage={cvLanguage}
-                  selectedTemplate={selectedTemplate}
-                  forceSinglePage={forceSinglePage}
-                  onJobCategoryChange={setJobCategory}
-                  onCvLanguageChange={setCvLanguage}
-                  onTemplateChange={setSelectedTemplate}
-                  onForceSinglePageChange={setForceSinglePage}
-                  handleRecompile={handleRecompile}
-                />
+                {activeTab === "preview" && (
+                  <CVControlsBar
+                    currentStep={currentStep}
+                    jobCategory={jobCategory}
+                    cvLanguage={cvLanguage}
+                    selectedTemplate={selectedTemplate}
+                    forceSinglePage={forceSinglePage}
+                    onJobCategoryChange={setJobCategory}
+                    onCvLanguageChange={setCvLanguage}
+                    onTemplateChange={setSelectedTemplate}
+                    onForceSinglePageChange={setForceSinglePage}
+                    handleRecompile={handleRecompile}
+                  />
+                )}
               </div>
 
               <div className="relative rounded-2xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.02)]" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
@@ -518,6 +520,7 @@ export default function Home() {
                     hasDraft={hasDraft}
                     handleRestoreDraft={handleRestoreDraft}
                     handleClearDraft={handleClearDraft}
+                    handleDownloadPDF={handleDownloadPDF}
                   />
                 ) : activeTab === "diff" ? (
                   <DiffViewPanel
@@ -535,6 +538,7 @@ export default function Home() {
                     cvText={cvText}
                     jobDescription={jobDescription}
                     coverLetter={coverLetter}
+                    setCoverLetter={setCoverLetter}
                     selectedTemplate={selectedTemplate}
                     handleGenerateCoverLetter={handleGenerateCoverLetter}
                     handleDownloadCoverLetterPDF={handleDownloadCoverLetterPDF}

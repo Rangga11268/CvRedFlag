@@ -72,7 +72,8 @@ ${bodyHtml}
     const fileName = pdfFile
       ? `${pdfFile.name.replace(".pdf", "")}_Cover_Letter`
       : "Cover_Letter";
-    const bodyHtml = renderCV(coverLetter);
+    const isHtml = coverLetter.trim().startsWith("<") || coverLetter.includes("</p>") || coverLetter.includes("<br>") || coverLetter.includes("</strong>") || coverLetter.includes("</b>");
+    const bodyHtml = isHtml ? coverLetter : renderCV(coverLetter);
 
     const fontFamily =
       selectedTemplate === "serif"

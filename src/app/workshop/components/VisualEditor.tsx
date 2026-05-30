@@ -1,12 +1,15 @@
 import React from "react";
 import {
-  MagicWand,
   Sparkle,
   ArrowCounterClockwise,
   ArrowClockwise,
   CheckCircle,
   CaretRight,
-  Info
+  Info,
+  TextB,
+  TextItalic,
+  Trash,
+  MagicWand
 } from "@phosphor-icons/react";
 import { sectionsConfig } from "../utils/cvHelpers";
 
@@ -27,6 +30,7 @@ interface VisualEditorProps {
   hasDraft: boolean;
   handleRestoreDraft: () => void;
   handleClearDraft: () => void;
+  handleDownloadPDF: () => void;
 }
 
 const VisualEditor: React.FC<VisualEditorProps> = ({
@@ -46,75 +50,95 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
   hasDraft,
   handleRestoreDraft,
   handleClearDraft,
+  handleDownloadPDF,
 }) => {
-  return (
-    <div className="flex flex-col w-full min-h-[600px]">
-      <div className="no-print p-3.5 border-b text-[11px] flex flex-col md:flex-row sm:items-center justify-between gap-3 font-medium bg-slate-50/80 text-slate-800 border-[var(--border)]">
-        <div className="flex flex-col gap-1">
-          <span className="flex items-center gap-1.5">
-            <MagicWand weight="bold" className="w-3.5 h-3.5 shrink-0 text-indigo-600" />
-            <span className="font-bold text-slate-700">Mode Edit CV</span>
-          </span>
-          <span className="text-[10px] text-slate-500 font-normal">
-            {editorMode === "visual" 
-              ? "Sunting CV Anda dengan mudah melalui form per bagian di bawah ini." 
-              : "Gunakan editor raw Markdown untuk kontrol teks penuh."}
-          </span>
-        </div>
-        
-        {/* Controls Area */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Undo / Redo Buttons */}
-          <div className="flex items-center bg-slate-200/60 p-0.5 rounded-lg border border-slate-200/30">
-            <button
-              type="button"
-              onClick={handleUndo}
-              disabled={historyIndex <= 0}
-              className="p-1 px-2.5 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-slate-650 hover:bg-white disabled:hover:bg-transparent"
-              title="Kembalikan perubahan terakhir (Ctrl+Z)"
-            >
-              <ArrowCounterClockwise weight="bold" className="w-3.5 h-3.5" />
-              Undo
-            </button>
-            <button
-              type="button"
-              onClick={handleRedo}
-              disabled={historyIndex >= history.length - 1}
-              className="p-1 px-2.5 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-slate-650 hover:bg-white disabled:hover:bg-transparent"
-              title="Ulangi perubahan yang dibatalkan (Ctrl+Y)"
-            >
-              <ArrowClockwise weight="bold" className="w-3.5 h-3.5" />
-              Redo
-            </button>
-          </div>
+  const applyFormatting = (key: string, format: "bold" | "italic") => {
+    const textarea = document.querySelector(`textarea[data-section="${key}"]`) as HTMLTextAreaElement;
+    if (!textarea) return;
 
-          {/* Segmented Control Toggle */}
-          <div className="flex items-center bg-slate-200/60 p-0.5 rounded-lg border border-slate-200/30">
-            <button
-              type="button"
-              onClick={() => setEditorMode("visual")}
-              className={`px-3 py-1 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer ${
-                editorMode === "visual"
-                  ? "bg-white text-indigo-600 shadow-3xs"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              <Sparkle weight="bold" className="w-3 h-3" />
-              Visual Form (Mudah)
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditorMode("raw")}
-              className={`px-3 py-1 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer ${
-                editorMode === "raw"
-                  ? "bg-white text-indigo-600 shadow-3xs"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              <MagicWand weight="bold" className="w-3 h-3" />
-              Raw Markdown (Lanjutan)
-            </button>
-          </div>
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selectedText = text.substring(start, end);
+    
+    let replacement = "";
+    let cursorOffset = 0;
+    let selectionLength = 0;
+
+    if (format === "bold") {
+      replacement = `**${selectedText || "Tebal"}**`;
+      cursorOffset = 2;
+      selectionLength = selectedText ? selectedText.length : 5;
+    } else if (format === "italic") {
+      replacement = `*${selectedText || "Miring"}*`;
+      cursorOffset = 1;
+      selectionLength = selectedText ? selectedText.length : 6;
+    }
+
+    const newValue = text.substring(0, start) + replacement + text.substring(end);
+    handleSectionChange(key, newValue, true);
+
+    // Refocus and select
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + cursorOffset, start + cursorOffset + selectionLength);
+    }, 50);
+  };
+
+  return (
+    <div className="flex flex-col w-full min-h-[500px]">
+      {/* Simplified Toolbar Header */}
+      <div className="no-print p-3 px-4 border-b text-[11px] flex items-center justify-between font-medium bg-slate-50/80 text-slate-800 border-[var(--border)]">
+        {/* Left Side: Undo / Redo Buttons */}
+        <div className="flex items-center bg-slate-200/60 p-0.5 rounded-lg border border-slate-200/30">
+          <button
+            type="button"
+            onClick={handleUndo}
+            disabled={historyIndex <= 0}
+            className="p-1 px-2.5 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-slate-650 hover:bg-white disabled:hover:bg-transparent"
+            title="Kembalikan perubahan terakhir (Ctrl+Z)"
+          >
+            <ArrowCounterClockwise weight="bold" className="w-3.5 h-3.5" />
+            Undo
+          </button>
+          <button
+            type="button"
+            onClick={handleRedo}
+            disabled={historyIndex >= history.length - 1}
+            className="p-1 px-2.5 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-slate-650 hover:bg-white disabled:hover:bg-transparent"
+            title="Ulangi perubahan yang dibatalkan (Ctrl+Y)"
+          >
+            <ArrowClockwise weight="bold" className="w-3.5 h-3.5" />
+            Redo
+          </button>
+        </div>
+
+        {/* Right Side: Segmented Control Toggle */}
+        <div className="flex items-center bg-slate-200/60 p-0.5 rounded-lg border border-slate-200/30">
+          <button
+            type="button"
+            onClick={() => setEditorMode("visual")}
+            className={`px-3 py-1 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer ${
+              editorMode === "visual"
+                ? "bg-white text-indigo-600 shadow-3xs"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <Sparkle weight="bold" className="w-3 h-3" />
+            Visual Form
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditorMode("raw")}
+            className={`px-3 py-1 rounded-md text-[10px] font-bold tracking-wide transition-all flex items-center gap-1 cursor-pointer ${
+              editorMode === "raw"
+                ? "bg-white text-indigo-600 shadow-3xs"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <MagicWand weight="bold" className="w-3 h-3" />
+            Raw Markdown
+          </button>
         </div>
       </div>
 
@@ -223,6 +247,7 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                     </p>
                     <div className="relative">
                       <textarea
+                        data-section={sec.key}
                         value={parsedSections[sec.key] || ""}
                         onChange={(e) => handleSectionChange(sec.key, e.target.value, false)}
                         placeholder={sec.placeholder}
@@ -231,7 +256,41 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                       />
                       {/* Action toolbar inside the textarea container */}
                       <div className="absolute left-2.5 bottom-2.5 right-2.5 flex items-center justify-between bg-white/95 px-2.5 py-1.5 rounded-md border border-slate-200/60 shadow-3xs">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {/* Bold & Italic */}
+                          <button
+                            type="button"
+                            onClick={() => applyFormatting(sec.key, "bold")}
+                            className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors flex items-center justify-center cursor-pointer"
+                            title="Tebalkan (Bold) - **Teks**"
+                          >
+                            <TextB weight="bold" className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyFormatting(sec.key, "italic")}
+                            className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-105 rounded transition-colors flex items-center justify-center cursor-pointer"
+                            title="Miringkan (Italic) - *Teks*"
+                          >
+                            <TextItalic weight="bold" className="w-3.5 h-3.5" />
+                          </button>
+
+                          {sec.key !== "header" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`Apakah Anda yakin ingin menghapus/mengosongkan bagian "${sec.title}"? Bagian ini tidak akan tampil di pratinjau dan cetak PDF.`)) {
+                                  handleSectionChange(sec.key, "", true);
+                                }
+                              }}
+                              className="text-[9px] font-bold text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded border border-red-100 transition-colors flex items-center gap-1 cursor-pointer font-sans"
+                              title="Hapus atau Kosongkan Seksi Ini"
+                            >
+                              <Trash weight="fill" className="w-3 h-3 text-red-650" />
+                              <span>Hapus Seksi</span>
+                            </button>
+                          )}
+
                           {["experience", "projects", "skills", "education", "certifications"].includes(sec.key) && (
                             <button
                               type="button"
@@ -242,7 +301,7 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                               }}
                               className="text-[9px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded border border-indigo-100 transition-colors flex items-center gap-1 cursor-pointer font-sans"
                             >
-                              <span>+ Poin Daftar (Bullet Point)</span>
+                              <span>+ Poin Daftar (Bullet)</span>
                             </button>
                           )}
                           {sec.key === "experience" && (
@@ -255,7 +314,7 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                               }}
                               className="text-[9px] font-bold text-slate-600 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 px-2 py-1 rounded border border-slate-200 transition-colors flex items-center gap-1 cursor-pointer font-sans"
                             >
-                              <span>+ Template Kerja Baru</span>
+                              <span>+ Kerja Baru</span>
                             </button>
                           )}
                           {sec.key === "projects" && (
@@ -268,7 +327,7 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                               }}
                               className="text-[9px] font-bold text-slate-600 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 px-2 py-1 rounded border border-slate-200 transition-colors flex items-center gap-1 cursor-pointer font-sans"
                             >
-                              <span>+ Template Proyek Baru</span>
+                              <span>+ Proyek Baru</span>
                             </button>
                           )}
                           {sec.key === "education" && (
@@ -281,7 +340,7 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
                               }}
                               className="text-[9px] font-bold text-slate-600 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 px-2 py-1 rounded border border-slate-200 transition-colors flex items-center gap-1 cursor-pointer font-sans"
                             >
-                              <span>+ Template Pendidikan</span>
+                              <span>+ Pendidikan</span>
                             </button>
                           )}
                         </div>

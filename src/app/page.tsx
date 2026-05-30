@@ -20,7 +20,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-500/10 selection:text-indigo-900 flex flex-col" style={{ fontFamily: "var(--font-inter, sans-serif)" }}>
+    <div className="relative min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-500/10 selection:text-indigo-900 flex flex-col w-full overflow-x-hidden" style={{ fontFamily: "var(--font-inter, sans-serif)" }}>
       {/* ── Fixed Header ────────────────────────────────────────── */}
       <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-lg border-b px-4 sm:px-6 md:px-12 py-3 flex sm:py-3.5 flex-row items-center justify-between transition-all duration-200" style={{ background: 'rgba(255,255,255,0.72)', borderColor: 'rgba(226,232,240,0.7)', boxShadow: '0 4px 30px rgba(0,0,0,0.02)' }}>
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">

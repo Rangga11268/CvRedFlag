@@ -1,6 +1,19 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowClockwise, MagicWand, FileArrowDown } from "@phosphor-icons/react";
+import {
+  ArrowClockwise,
+  MagicWand,
+  FileArrowDown,
+  TextB,
+  TextItalic,
+  TextUnderline,
+  ListBullets,
+  ListNumbers,
+  TextAlignLeft,
+  TextAlignCenter,
+  TextAlignRight,
+  Broom
+} from "@phosphor-icons/react";
 import { renderCV } from "../utils/cvHelpers";
 
 interface CoverLetterPanelProps {
@@ -12,11 +25,78 @@ interface CoverLetterPanelProps {
   cvText: string;
   jobDescription: string;
   coverLetter: string;
+  setCoverLetter: (text: string) => void;
   selectedTemplate: "serif" | "sans" | "compact";
   handleGenerateCoverLetter: () => void;
   handleDownloadCoverLetterPDF: () => void;
   showToast: (msg: string, type?: "success" | "error" | "info") => void;
 }
+
+const htmlToPlainText = (html: string) => {
+  if (typeof window === "undefined") return html;
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const lines: string[] = [];
+  
+  const walk = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      lines.push(node.textContent || "");
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      const tagName = el.tagName.toUpperCase();
+      
+      if (tagName === "BR") {
+        lines.push("\n");
+      } else if (tagName === "P" || tagName === "DIV" || tagName === "LI") {
+        if (lines.length > 0 && !lines[lines.length - 1].endsWith("\n")) {
+          lines.push("\n");
+        }
+        if (tagName === "LI") {
+          lines.push("• ");
+        }
+        for (let i = 0; i < el.childNodes.length; i++) {
+          walk(el.childNodes[i]);
+        }
+        lines.push("\n");
+      } else {
+        for (let i = 0; i < el.childNodes.length; i++) {
+          walk(el.childNodes[i]);
+        }
+      }
+    }
+  };
+  
+  for (let i = 0; i < doc.body.childNodes.length; i++) {
+    walk(doc.body.childNodes[i]);
+  }
+  
+  return lines.join("").replace(/\n{3,}/g, "\n\n").trim();
+};
+
+const copyRichText = async (html: string) => {
+  const plainText = htmlToPlainText(html);
+  try {
+    if (navigator.clipboard && window.ClipboardItem) {
+      const blobHtml = new Blob([html], { type: "text/html" });
+      const blobPlain = new Blob([plainText], { type: "text/plain" });
+      const item = new ClipboardItem({
+        "text/html": blobHtml,
+        "text/plain": blobPlain,
+      });
+      await navigator.clipboard.write([item]);
+    } else {
+      await navigator.clipboard.writeText(plainText);
+    }
+    return true;
+  } catch (err) {
+    console.error("Rich text copy failed, falling back to text copy:", err);
+    try {
+      await navigator.clipboard.writeText(plainText);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+};
 
 const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
   coverLetterFormat,
@@ -27,11 +107,37 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
   cvText,
   jobDescription,
   coverLetter,
+  setCoverLetter,
   selectedTemplate,
   handleGenerateCoverLetter,
   handleDownloadCoverLetterPDF,
   showToast,
 }) => {
+  const editableRef = useRef<HTMLDivElement>(null);
+
+  // Sync state into contentEditable innerHTML ONLY when the document is first generated
+  // or regenerated to prevent cursor jumping issues during active editing.
+  useEffect(() => {
+    if (editableRef.current && coverLetter) {
+      // Check if the current visible HTML matches the cover letter HTML.
+      // If coverLetter contains markdown formatting, we render it via renderCV.
+      const isHtml = coverLetter.trim().startsWith("<") || coverLetter.includes("</p>") || coverLetter.includes("<br>") || coverLetter.includes("</strong>") || coverLetter.includes("</b>");
+      const targetHtml = isHtml ? coverLetter : renderCV(coverLetter);
+
+      if (editableRef.current.innerHTML !== targetHtml) {
+        editableRef.current.innerHTML = targetHtml;
+      }
+    }
+  }, [coverLetter, loadingCoverLetter]);
+
+  const handleCommand = (command: string) => {
+    document.execCommand(command, false, undefined);
+    // Trigger state sync after formatting
+    if (editableRef.current) {
+      setCoverLetter(editableRef.current.innerHTML);
+    }
+  };
+
   return (
     <div className="w-full min-h-[600px] p-6 bg-slate-50 flex flex-col gap-4 relative">
       {/* Control Panel for Cover Letter & Email generation */}
@@ -68,7 +174,7 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
         {/* Generate Button */}
         <button
           disabled={loadingCoverLetter || !cvText || !jobDescription}
-          onClick={handleGenerateCoverLetter}
+          onClick={() => handleGenerateCoverLetter()}
           className="w-full md:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
           style={{ fontFamily: 'var(--font-jakarta)' }}
         >
@@ -107,9 +213,13 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
             </span>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(coverLetter);
-                  showToast(coverLetterFormat.startsWith("body_email") ? "Email copied to clipboard!" : "Cover letter copied to clipboard!", "success");
+                onClick={async () => {
+                  const success = await copyRichText(coverLetter);
+                  if (success) {
+                    showToast(coverLetterFormat.startsWith("body_email") ? "Email copied to clipboard with styles!" : "Cover letter copied to clipboard with styles!", "success");
+                  } else {
+                    showToast("Failed to copy text.", "error");
+                  }
                 }}
                 className="px-3 py-1.5 text-[9px] font-bold uppercase bg-indigo-50 border border-indigo-150/40 text-indigo-700 hover:bg-indigo-100 rounded-lg cursor-pointer transition-all"
                 style={{ fontFamily: 'var(--font-jakarta)' }}
@@ -127,17 +237,110 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
               )}
             </div>
           </div>
-          <div className="w-full flex justify-center py-4 bg-slate-100 overflow-x-auto max-h-[600px] rounded-xl border">
+
+          {/* Formatting Toolbar */}
+          <div className="sticky top-0 z-20 flex flex-wrap items-center gap-1 bg-white border border-slate-200 p-1.5 rounded-xl shadow-xs w-full sm:w-max self-start mb-1">
+            <div className="flex items-center gap-1 pr-1.5 border-r border-slate-200">
+              <button
+                type="button"
+                onClick={() => handleCommand("bold")}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-700 active:bg-slate-200 transition-colors flex items-center justify-center cursor-pointer"
+                title="Tebalkan Teks (Bold)"
+              >
+                <TextB weight="bold" className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCommand("italic")}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-700 active:bg-slate-200 transition-colors flex items-center justify-center cursor-pointer"
+                title="Miringkan Teks (Italic)"
+              >
+                <TextItalic weight="bold" className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCommand("underline")}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-700 active:bg-slate-200 transition-colors flex items-center justify-center cursor-pointer"
+                title="Garis Bawah (Underline)"
+              >
+                <TextUnderline weight="bold" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1 px-1.5 border-r border-slate-200">
+              <button
+                type="button"
+                onClick={() => handleCommand("justifyLeft")}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-700 active:bg-slate-200 transition-colors flex items-center justify-center cursor-pointer"
+                title="Rata Kiri"
+              >
+                <TextAlignLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCommand("justifyCenter")}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-700 active:bg-slate-200 transition-colors flex items-center justify-center cursor-pointer"
+                title="Rata Tengah"
+              >
+                <TextAlignCenter className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCommand("justifyRight")}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-700 active:bg-slate-200 transition-colors flex items-center justify-center cursor-pointer"
+                title="Rata Kanan"
+              >
+                <TextAlignRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1 px-1.5 border-r border-slate-200">
+              <button
+                type="button"
+                onClick={() => handleCommand("insertUnorderedList")}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-700 active:bg-slate-200 transition-colors flex items-center justify-center cursor-pointer"
+                title="Bullet List"
+              >
+                <ListBullets className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCommand("insertOrderedList")}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-700 active:bg-slate-200 transition-colors flex items-center justify-center cursor-pointer"
+                title="Numbered List"
+              >
+                <ListNumbers className="w-4 h-4" />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleCommand("removeFormat")}
+              className="p-1.5 hover:bg-rose-50 rounded-lg text-rose-600 active:bg-rose-100 transition-colors flex items-center justify-center cursor-pointer ml-auto sm:ml-0"
+              title="Hapus Format (Clear Formatting)"
+            >
+              <Broom className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="w-full flex flex-col items-center gap-2 py-4 bg-slate-100 overflow-x-auto max-h-[650px] rounded-xl border">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">💡 Klik pada kertas di bawah untuk mengedit & memformat secara langsung</span>
             <div
-              className="bg-white shadow-md p-6 sm:p-8 text-slate-800 text-left w-full max-w-[794px]"
+              ref={editableRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={(e) => {
+                setCoverLetter(e.currentTarget.innerHTML);
+              }}
+              className="bg-white shadow-md p-6 sm:p-8 text-slate-800 text-left w-full max-w-[794px] focus:outline-none border border-transparent focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 rounded-xs"
               style={{
                 minHeight: coverLetterFormat.startsWith("body_email") ? "auto" : "1123px",
                 fontFamily: selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif",
                 fontSize: "10.5pt",
-                lineHeight: 1.5,
+                lineHeight: 1.6,
                 color: "#222",
+                whiteSpace: "pre-wrap",
               }}
-              dangerouslySetInnerHTML={{ __html: renderCV(coverLetter) }}
             />
           </div>
         </div>
