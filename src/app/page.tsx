@@ -22,10 +22,10 @@ export default function LandingPage() {
   return (
     <div className="relative min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-500/10 selection:text-indigo-900 flex flex-col" style={{ fontFamily: "var(--font-inter, sans-serif)" }}>
       {/* ── Fixed Header ────────────────────────────────────────── */}
-      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-lg border-b px-6 md:px-12 py-3.5 flex items-center justify-between transition-all duration-200" style={{ background: 'rgba(255,255,255,0.72)', borderColor: 'rgba(226,232,240,0.7)', boxShadow: '0 4px 30px rgba(0,0,0,0.02)' }}>
-        <div className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="CVRedFlag Logo" className="w-8 h-8 rounded-lg object-cover shadow-xs border border-slate-200/50" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-          <span className="font-extrabold text-base tracking-tight text-slate-900" style={{ fontFamily: "var(--font-jakarta)" }}>CVRedFlag<span className="text-indigo-605 text-indigo-600">.ai</span></span>
+      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-lg border-b px-4 sm:px-6 md:px-12 py-3 flex sm:py-3.5 flex-row items-center justify-between transition-all duration-200" style={{ background: 'rgba(255,255,255,0.72)', borderColor: 'rgba(226,232,240,0.7)', boxShadow: '0 4px 30px rgba(0,0,0,0.02)' }}>
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <img src="/logo.png" alt="CVRedFlag Logo" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover shadow-xs border border-slate-200/50" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          <span className="font-extrabold text-sm sm:text-base tracking-tight text-slate-900" style={{ fontFamily: "var(--font-jakarta)" }}>CVRedFlag<span className="text-indigo-600">.ai</span></span>
         </div>
         <nav className="hidden md:flex items-center gap-6 text-xs font-bold uppercase tracking-wider text-slate-500">
           <a href="#features" className="hover:text-indigo-600 transition-colors py-1.5 px-3 rounded-lg hover:bg-slate-50">Fitur</a>
@@ -33,68 +33,68 @@ export default function LandingPage() {
           <a href="#pricing" className="hover:text-indigo-600 transition-colors py-1.5 px-3 rounded-lg hover:bg-slate-50">Harga</a>
           <a href="#faq" className="hover:text-indigo-600 transition-colors py-1.5 px-3 rounded-lg hover:bg-slate-50">FAQ</a>
         </nav>
-        <div>
+        <div className="shrink-0">
           <a
             href="/workshop"
-            className="px-4 py-2 text-xs font-bold text-white transition-all rounded-xl flex items-center gap-1.5 shadow-sm hover:shadow-indigo-500/25 active:scale-[0.98]"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold text-white transition-all rounded-xl flex items-center gap-1 sm:gap-1.5 shadow-sm hover:shadow-indigo-500/25 active:scale-[0.98]"
             style={{
               background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
               fontFamily: 'var(--font-jakarta)'
             }}
           >
-            Buka Workshop <ArrowRight weight="bold" className="w-3.5 h-3.5" />
+            Buka Workshop <ArrowRight weight="bold" className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
           </a>
         </div>
       </header>
 
       {/* ── Hero Section ───────────────────────────────────────── */}
-      <section className="relative px-6 pt-28 pb-20 md:pt-36 md:pb-28 max-w-6xl mx-auto w-full">
+      <section className="relative px-4 sm:px-6 pt-24 pb-16 md:pt-36 md:pb-28 max-w-6xl mx-auto w-full">
         {/* Glow Effects */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-indigo-200/30 blur-[130px] rounded-full pointer-events-none -z-10" />
         <div className="absolute top-1/3 left-1/3 w-[350px] h-[350px] bg-rose-200/20 blur-[110px] rounded-full pointer-events-none -z-10" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Column: Text & CTA */}
           <div className="lg:col-span-5 text-center lg:text-left flex flex-col items-center lg:items-start">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-100 mb-6" style={{ fontFamily: 'var(--font-jakarta)' }}>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-100 mb-5 sm:mb-6" style={{ fontFamily: 'var(--font-jakarta)' }}>
               <Sparkle weight="fill" className="w-3.5 h-3.5 animate-pulse text-indigo-600" /> Optimalkan CV dengan Google XYZ Formula
             </div>
             
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900 leading-[1.1] mb-6" style={{ fontFamily: 'var(--font-jakarta)' }}>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-900 leading-[1.15] lg:leading-[1.1] mb-4 sm:mb-6" style={{ fontFamily: 'var(--font-jakarta)' }}>
               Deteksi <span className="text-rose-600">Red Flag</span> CV Anda & Loloskan ATS
             </h1>
-            <p className="text-xs md:text-sm text-slate-500 leading-relaxed mb-8 max-w-md">
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed mb-6 sm:mb-8 max-w-md">
               Pindai CV Anda terhadap kriteria rekruter senior, temukan kesalahan fatal, dan tulis ulang pengalaman kerja Anda menggunakan formula standar Google secara instan.
             </p>
 
             {/* Hero CTA Button */}
-            <div className="mb-4">
+            <div className="mb-4 w-full sm:w-auto">
               <a
                 href="/workshop"
-                className="px-8 py-4 text-white font-bold text-sm rounded-2xl cursor-pointer shadow-lg hover:shadow-indigo-500/20 transition-all hover:scale-[1.03] active:scale-[0.98] flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 text-white font-bold text-xs sm:text-sm rounded-2xl cursor-pointer shadow-lg hover:shadow-indigo-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
                 style={{
                   background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
                   boxShadow: "0 10px 25px -5px rgba(79, 70, 229, 0.45)",
                   fontFamily: "var(--font-jakarta)"
                 }}
               >
-                Mulai Scan & Rewrite Sekarang <ArrowRight weight="bold" className="w-4 h-4" />
+                Mulai Scan & Rewrite Sekarang <ArrowRight weight="bold" className="w-3.5 sm:w-4 sm:h-4 h-3.5" />
               </a>
             </div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">100% Gratis Selama Masa Beta</span>
+            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">100% Gratis Selama Masa Beta</span>
           </div>
 
           {/* Right Column: Hero App Mockup Showcase */}
-          <div className="lg:col-span-7 w-full">
-            <div className="w-full rounded-2xl overflow-hidden border border-slate-200/80 shadow-[0_20px_50px_rgba(15,23,42,0.06)] bg-white p-2 hover:shadow-[0_25px_60px_rgba(15,23,42,0.1)] transition-all duration-300">
-              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50/55 text-left">
+          <div className="lg:col-span-7 w-full mt-4 lg:mt-0">
+            <div className="w-full rounded-2xl overflow-hidden border border-slate-200/80 shadow-[0_20px_50px_rgba(15,23,42,0.06)] bg-white p-1.5 sm:p-2 hover:shadow-[0_25px_60px_rgba(15,23,42,0.1)] transition-all duration-300">
+              <div className="flex items-center justify-between px-2 sm:px-3 py-1.5 sm:py-2 border-b border-slate-100 bg-slate-50/55 text-left">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-amber-450" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                  <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-400" />
+                  <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400" />
+                  <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400" />
                 </div>
-                <span className="text-[9px] text-slate-400 font-mono">cvredflag.ai/workshop</span>
-                <div className="w-12" /> {/* spacing element */}
+                <span className="text-[8px] sm:text-[9px] text-slate-400 font-mono">cvredflag.ai/workshop</span>
+                <div className="w-8 sm:w-12" /> {/* spacing element */}
               </div>
               <img
                 src="/hero_mockup.png"
