@@ -10,6 +10,7 @@ interface ATSAnalyzerPanelProps {
   keywordSuggestion: string;
   loadingKeywordSuggestion: boolean;
   jobDescription: string;
+  currentCvText: string;
   setJobDescription: (jd: string) => void;
   onKeywordClick: (kw: string) => void;
   setSelectedKeyword: (kw: string | null) => void;
@@ -24,10 +25,37 @@ const ATSAnalyzerPanel: React.FC<ATSAnalyzerPanelProps> = ({
   keywordSuggestion,
   loadingKeywordSuggestion,
   jobDescription,
+  currentCvText,
   setJobDescription,
   onKeywordClick,
   setSelectedKeyword,
 }) => {
+  // Merge original keywords list
+  const allKeywords = React.useMemo(() => {
+    if (!step1Result) return [];
+    const missing = step1Result.missingKeywords || [];
+    const resolved = step1Result.resolvedKeywords || [];
+    return Array.from(new Set([...missing, ...resolved]));
+  }, [step1Result]);
+
+  // Dynamically check which keywords are resolved based on current CV text
+  const { currentMissing, currentResolved } = React.useMemo(() => {
+    const text = (currentCvText || "").toLowerCase();
+    const missing: string[] = [];
+    const resolved: string[] = [];
+    
+    allKeywords.forEach(kw => {
+      // Clean keyword check: strip common markdown formatting
+      const cleanKw = kw.toLowerCase().trim();
+      if (cleanKw && text.includes(cleanKw)) {
+        resolved.push(kw);
+      } else {
+        missing.push(kw);
+      }
+    });
+    return { currentMissing: missing, currentResolved: resolved };
+  }, [allKeywords, currentCvText]);
+
   if (!step1Result) return null;
 
   const scoreColor = step1Result.score >= 80
@@ -171,13 +199,13 @@ const ATSAnalyzerPanel: React.FC<ATSAnalyzerPanelProps> = ({
       <div className="premium-card p-4 flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <Tag weight="fill" className="w-3.5 h-3.5 text-indigo-600" />
-          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-jakarta)' }}>Missing Keywords</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-jakarta)' }}>Keywords Checklist</span>
           <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>
-            {step1Result.missingKeywords.length}
+            {currentMissing.length} / {allKeywords.length} missing
           </span>
         </div>
         <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
-          {step1Result.missingKeywords.map((kw, i) => (
+          {currentMissing.map((kw, i) => (
             <motion.span key={`missing-${i}`} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.02 }}
               onClick={() => onKeywordClick(kw)}
               className={`px-2.5 py-1 text-[11px] rounded-lg font-semibold cursor-pointer transition-all hover:bg-indigo-150/40 hover:border-indigo-400/30 ${selectedKeyword === kw ? "ring-2 ring-indigo-500/30 bg-indigo-100/50" : ""}`}
@@ -186,17 +214,16 @@ const ATSAnalyzerPanel: React.FC<ATSAnalyzerPanelProps> = ({
               {kw}
             </motion.span>
           ))}
-          {step1Result.resolvedKeywords?.map((kw, i) => (
+          {currentResolved.map((kw, i) => (
             <motion.span key={`resolved-${i}`} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-              className="px-2.5 py-1 text-[11px] rounded-lg font-semibold flex items-center gap-1"
-              style={{ background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.2)', color: '#047857' }}
+              className="px-2.5 py-1 text-[11px] rounded-lg font-semibold flex items-center gap-1 border border-emerald-250 bg-emerald-50 text-emerald-800"
             >
-              <CheckCircle weight="fill" className="w-3 h-3 text-emerald-600 shrink-0" />
+              <CheckCircle weight="fill" className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span className="line-through opacity-75">{kw}</span>
             </motion.span>
           ))}
-          {step1Result.missingKeywords.length === 0 && (!step1Result.resolvedKeywords || step1Result.resolvedKeywords.length === 0) && (
-            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>No missing keywords!</span>
+          {allKeywords.length === 0 && (
+            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>No keywords analyzed yet.</span>
           )}
         </div>
 

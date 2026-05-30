@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
       redFlags,
       rewrittenExperience,
       openrouterApiKey,
+      geminiApiKey,
       isReanalysis,
       originalRedFlags,
       originalKeywords,
@@ -25,14 +26,17 @@ export async function POST(req: NextRequest) {
       format,
       jobCategory,
       cvLanguage,
+      tone,
     } = await req.json();
 
     // Determine API Keys
     const groqApiKey = process.env.GROQ_API_KEY;
     const openrouterKey = openrouterApiKey || process.env.OPENROUTER_API_KEY;
-    if (!groqApiKey && !openrouterKey) {
+    const geminiKey = geminiApiKey || process.env.GEMINI_API_KEY;
+
+    if (!groqApiKey && !openrouterKey && !geminiKey) {
       return NextResponse.json(
-        { error: "API Key Groq (di .env.local) atau OpenRouter tidak ditemukan. Harap masukkan API Key Anda." },
+        { error: "API Key (Gemini, Groq, atau OpenRouter) tidak ditemukan. Harap masukkan API Key Anda di Pengaturan." },
         { status: 400 }
       );
     }
@@ -92,6 +96,7 @@ export async function POST(req: NextRequest) {
         language,
         format,
         jobCategory,
+        tone,
       });
       systemPrompt = result.systemPrompt;
       userPrompt = result.userPrompt;
@@ -104,6 +109,60 @@ export async function POST(req: NextRequest) {
     let response: Response | null = null;
     let lastError = "";
 
+    const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs: number = 8000): Promise<Response> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(timeoutId);
+        return res;
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        throw err;
+      }
+    };
+
+    // 0. Try Google Gemini API first if geminiKey is configured
+    if (geminiKey) {
+      try {
+        const isJson = responseFormat?.type === "json_object";
+        const geminiModel = "gemini-2.5-flash";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`;
+        
+        const attempt = await fetchWithTimeout(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  { text: `${systemPrompt}\n\n${userPrompt}` }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.3,
+              ...(isJson ? { responseMimeType: "application/json" } : {})
+            }
+          })
+        }, 9500);
+
+        if (attempt.ok) {
+          response = attempt;
+        } else {
+          const errBody = await attempt.text();
+          lastError = `[Gemini: ${geminiModel}] ${attempt.status} - ${errBody}`;
+          console.warn("Gemini model failed, falling back:", lastError);
+        }
+      } catch (e: any) {
+        lastError = `[Gemini] Exception: ${e.message}`;
+        console.warn("Gemini fetch threw exception or timed out:", lastError);
+      }
+    }
+
     // 1. Try Groq first if GROQ_API_KEY is configured
     if (groqApiKey) {
       const groqModels = [
@@ -113,7 +172,7 @@ export async function POST(req: NextRequest) {
 
       for (const model of groqModels) {
         try {
-          const attempt = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          const attempt = await fetchWithTimeout("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -128,7 +187,7 @@ export async function POST(req: NextRequest) {
               ...(responseFormat ? { response_format: responseFormat } : {}),
               temperature: 0.3,
             }),
-          });
+          }, 8000);
 
           if (attempt.ok) {
             response = attempt;
@@ -140,27 +199,23 @@ export async function POST(req: NextRequest) {
           console.warn("Groq model failed, trying next:", lastError);
         } catch (e: any) {
           lastError = `[Groq: ${model}] Exception: ${e.message}`;
-          console.warn("Groq fetch threw exception:", lastError);
+          console.warn("Groq fetch threw exception or timed out:", lastError);
         }
       }
     }
 
     // 2. Fallback to OpenRouter if Groq failed or is not configured
     if (!response && openrouterKey) {
+      // Reduced to top 3 fast and reliable free models
       const modelFallbacks = [
-        "openrouter/free",
-        "meta-llama/llama-3.3-70b-instruct:free",
-        "qwen/qwen-2.5-72b-instruct:free",
         "google/gemma-2-9b-it:free",
-        "meta-llama/llama-3.2-3b-instruct:free",
-        "mistralai/pixtral-12b:free",
-        "microsoft/phi-3-medium-128k-instruct:free",
-        "nousresearch/hermes-3-llama-3.1-405b:free",
+        "qwen/qwen-2.5-72b-instruct:free",
+        "meta-llama/llama-3.3-70b-instruct:free",
       ];
 
       for (const model of modelFallbacks) {
         try {
-          const attempt = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          const attempt = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -177,7 +232,7 @@ export async function POST(req: NextRequest) {
               ...(responseFormat ? { response_format: responseFormat } : {}),
               temperature: 0.3,
             }),
-          });
+          }, 8000);
 
           if (attempt.ok) {
             response = attempt;
@@ -189,23 +244,28 @@ export async function POST(req: NextRequest) {
           console.warn("OpenRouter model failed, trying next:", lastError);
         } catch (e: any) {
           lastError = `[OpenRouter: ${model}] Exception: ${e.message}`;
-          console.warn("OpenRouter fetch threw exception:", lastError);
+          console.warn("OpenRouter fetch threw exception or timed out:", lastError);
         }
       }
     }
 
     if (!response) {
-      throw new Error(`All models failed. Last error: ${lastError}`);
+      throw new Error(`All models failed or timed out. Last error: ${lastError}`);
     }
 
     // ── Parse AI Response ────────────────────────────────────────────────────
     const data = await response.json();
-    if (!data.choices || data.choices.length === 0) {
-      console.error("API response did not contain choices:", data);
+    let content = "";
+    
+    if (data.candidates && data.candidates.length > 0) {
+      content = data.candidates[0].content?.parts?.[0]?.text || "";
+    } else if (data.choices && data.choices.length > 0) {
+      content = data.choices[0].message?.content || "";
+    } else {
+      console.error("API response format invalid:", data);
       const errMsg = data.error?.message || "Format respons tidak valid dari API.";
       throw new Error(errMsg);
     }
-    const content = data.choices[0].message.content;
 
     if (step === 1) {
       try {

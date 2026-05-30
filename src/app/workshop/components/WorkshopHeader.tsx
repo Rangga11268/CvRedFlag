@@ -1,11 +1,12 @@
 import React from "react";
-import { CaretRight, ArrowClockwise, FileArrowDown } from "@phosphor-icons/react";
+import { CaretRight, ArrowClockwise, FileArrowDown, Gear } from "@phosphor-icons/react";
 
 interface WorkshopHeaderProps {
   pdfFile: File | null;
   currentStep: number;
   handleReset: () => void;
   handleDownloadPDF: () => void;
+  onSettingsClick: () => void;
 }
 
 const WorkshopHeader: React.FC<WorkshopHeaderProps> = ({
@@ -13,6 +14,7 @@ const WorkshopHeader: React.FC<WorkshopHeaderProps> = ({
   currentStep,
   handleReset,
   handleDownloadPDF,
+  onSettingsClick,
 }) => {
   return (
     <header className="no-print sticky top-0 z-40 backdrop-blur-xl border-b px-4 sm:px-6 py-3 flex sm:py-3.5 items-center justify-between" style={{ background: 'rgba(255,255,255,0.85)', borderColor: 'var(--border)' }}>
@@ -35,6 +37,13 @@ const WorkshopHeader: React.FC<WorkshopHeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <button
+          onClick={onSettingsClick}
+          className="flex items-center justify-center p-2 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-slate-500 hover:text-slate-700 transition-all hover:scale-[1.02] cursor-pointer"
+          title="Pengaturan API Key"
+        >
+          <Gear weight="bold" className="w-4.5 h-4.5" />
+        </button>
         <a
           href="/"
           className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 text-[10px] sm:text-xs font-semibold rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] transition-all hover:scale-[1.02]"

@@ -291,6 +291,7 @@ export const renderCV = (md: string): string => {
   });
   
   const isRightAlignedInfo = (str: string) => {
+    if (str.length > 45) return false;
     const s = str.toLowerCase();
     return /\b(19|20)\d{2}\b/g.test(s) || 
            s.includes("present") ||

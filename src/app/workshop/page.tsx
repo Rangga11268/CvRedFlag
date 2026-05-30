@@ -23,6 +23,7 @@ import WorkshopHeader from "./components/WorkshopHeader";
 import UploadPage from "./components/UploadPage";
 import ATSAnalyzerPanel from "./components/ATSAnalyzerPanel";
 import CVControlsBar from "./components/CVControlsBar";
+import SettingsModal from "./components/SettingsModal";
 
 // Custom Hooks
 import { useToast } from "./hooks/useToast";
@@ -48,12 +49,14 @@ export default function Home() {
   const [coverLetter, setCoverLetter] = useState<string>("");
   const [coverLetterLang, setCoverLetterLang] = useState<"id" | "en">("id");
   const [coverLetterFormat, setCoverLetterFormat] = useState<"cover_letter" | "body_email_1" | "body_email_2">("cover_letter");
+  const [coverLetterTone, setCoverLetterTone] = useState<"formal" | "confident" | "collaborative">("formal");
   const [loadingCoverLetter, setLoadingCoverLetter] = useState<boolean>(false);
   const [selectedTemplate, setSelectedTemplate] = useState<"serif" | "sans" | "compact">("serif");
   const [forceSinglePage, setForceSinglePage] = useState<boolean>(false);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [editorMode, setEditorMode] = useState<"visual" | "raw">("visual");
   const [expandedSection, setExpandedSection] = useState<string | null>("header");
+  const [showSettings, setShowSettings] = useState<boolean>(false);
 
   const { toasts, showToast, removeToast } = useToast();
 
@@ -74,9 +77,13 @@ export default function Home() {
     loading,
     loadingMsg,
     step1Result,
+    setStep1Result,
     step2Result,
+    setStep2Result,
     step3Result,
+    setStep3Result,
     currentStep,
+    setCurrentStep,
     jobCategory,
     setJobCategory,
     cvLanguage,
@@ -86,6 +93,7 @@ export default function Home() {
     keywordSuggestion,
     loadingKeywordSuggestion,
     scoreHistory,
+    setScoreHistory,
     runAnalysisStep,
     handleReoptimize,
     handleRecompile,
@@ -145,8 +153,9 @@ export default function Home() {
     }
   }, [expandedSection, editorMode, activeTab]);
 
-  // Load pre-filled data from sessionStorage if redirected from landing page
+  // Load backup from localStorage or pre-filled data from sessionStorage if redirected from landing page
   useEffect(() => {
+    let hasSessionData = false;
     if (typeof window !== "undefined") {
       const storedCvText = sessionStorage.getItem("cvText");
       const storedJd = sessionStorage.getItem("jobDescription");
@@ -155,9 +164,11 @@ export default function Home() {
       if (storedCvText) {
         setCvText(storedCvText);
         setEditableCV(storedCvText);
+        hasSessionData = true;
       }
       if (storedJd) {
         setJobDescription(storedJd);
+        hasSessionData = true;
       }
       if (storedFileName) {
         setPdfFile(new File([], storedFileName, { type: "application/pdf" }));
@@ -170,6 +181,35 @@ export default function Home() {
       sessionStorage.removeItem("cvText");
       sessionStorage.removeItem("jobDescription");
       sessionStorage.removeItem("fileName");
+
+      // Only load localStorage backup if we don't have fresh sessionStorage upload
+      if (!hasSessionData) {
+        try {
+          const saved = localStorage.getItem("cv_redflag_workshop_backup");
+          if (saved) {
+            const backup = JSON.parse(saved);
+            if (backup.cvText) setCvText(backup.cvText);
+            if (backup.editableCV) setEditableCV(backup.editableCV);
+            if (backup.jobDescription) setJobDescription(backup.jobDescription);
+            if (backup.selectedTemplate) setSelectedTemplate(backup.selectedTemplate);
+            if (backup.coverLetter) setCoverLetter(backup.coverLetter);
+            if (backup.coverLetterLang) setCoverLetterLang(backup.coverLetterLang);
+            if (backup.coverLetterFormat) setCoverLetterFormat(backup.coverLetterFormat);
+            if (backup.coverLetterTone) setCoverLetterTone(backup.coverLetterTone);
+            if (backup.forceSinglePage) setForceSinglePage(backup.forceSinglePage);
+            if (backup.activeTab) setActiveTab(backup.activeTab);
+            if (backup.currentStep) setCurrentStep(backup.currentStep);
+            if (backup.scoreHistory) setScoreHistory(backup.scoreHistory);
+            if (backup.jobCategory) setJobCategory(backup.jobCategory);
+            if (backup.cvLanguage) setCvLanguage(backup.cvLanguage);
+            if (backup.step1Result) setStep1Result(backup.step1Result);
+            if (backup.step2Result) setStep2Result(backup.step2Result);
+            if (backup.step3Result) setStep3Result(backup.step3Result);
+          }
+        } catch (err) {
+          console.warn("Failed to restore local workshop backup:", err);
+        }
+      }
     }
 
     const timer = setTimeout(() => {
@@ -178,6 +218,54 @@ export default function Home() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Auto-save state changes to localStorage
+  useEffect(() => {
+    if (isInitializing) return;
+    try {
+      const backup = {
+        cvText,
+        editableCV,
+        jobDescription,
+        selectedTemplate,
+        coverLetter,
+        coverLetterLang,
+        coverLetterFormat,
+        coverLetterTone,
+        forceSinglePage,
+        activeTab,
+        currentStep,
+        scoreHistory,
+        jobCategory,
+        cvLanguage,
+        step1Result,
+        step2Result,
+        step3Result,
+      };
+      localStorage.setItem("cv_redflag_workshop_backup", JSON.stringify(backup));
+    } catch (err) {
+      console.warn("Failed to auto-save local workshop backup:", err);
+    }
+  }, [
+    isInitializing,
+    cvText,
+    editableCV,
+    jobDescription,
+    selectedTemplate,
+    coverLetter,
+    coverLetterLang,
+    coverLetterFormat,
+    coverLetterTone,
+    forceSinglePage,
+    activeTab,
+    currentStep,
+    scoreHistory,
+    jobCategory,
+    cvLanguage,
+    step1Result,
+    step2Result,
+    step3Result,
+  ]);
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -237,10 +325,23 @@ export default function Home() {
     }
   };
 
-  const handleGenerateCoverLetter = async (lang?: "id" | "en", fmt?: "cover_letter" | "body_email_1" | "body_email_2") => {
+  const handleGenerateCoverLetter = async (
+    lang?: "id" | "en",
+    fmt?: "cover_letter" | "body_email_1" | "body_email_2",
+    tOption?: "formal" | "confident" | "collaborative"
+  ) => {
     setLoadingCoverLetter(true);
     const requestLang = lang || coverLetterLang;
     const requestFmt = fmt || coverLetterFormat;
+    const requestTone = tOption || coverLetterTone;
+
+    let geminiKey = "";
+    let openrouterKey = "";
+    if (typeof window !== "undefined") {
+      geminiKey = localStorage.getItem("cv_redflag_gemini_api_key") || "";
+      openrouterKey = localStorage.getItem("cv_redflag_openrouter_api_key") || "";
+    }
+
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -251,7 +352,10 @@ export default function Home() {
           jobDescription,
           language: requestLang,
           format: requestFmt,
-          jobCategory
+          jobCategory,
+          tone: requestTone,
+          ...(geminiKey ? { geminiApiKey: geminiKey } : {}),
+          ...(openrouterKey ? { openrouterApiKey: openrouterKey } : {}),
         })
       });
       if (!res.ok) throw new Error("Failed to generate cover letter");
@@ -273,6 +377,9 @@ export default function Home() {
     setCoverLetter("");
     setForceSinglePage(false);
     analysisReset();
+    try {
+      localStorage.removeItem("cv_redflag_workshop_backup");
+    } catch (e) {}
   };
 
   const handleSectionChange = (sectionKey: string, newContent: string, immediate: boolean = false) => {
@@ -373,6 +480,7 @@ export default function Home() {
         currentStep={currentStep}
         handleReset={handleReset}
         handleDownloadPDF={handleDownloadPDF}
+        onSettingsClick={() => setShowSettings(true)}
       />
 
       {/* ── Main Content ────────────────────────────────────────── */}
@@ -439,6 +547,7 @@ export default function Home() {
               keywordSuggestion={keywordSuggestion}
               loadingKeywordSuggestion={loadingKeywordSuggestion}
               jobDescription={jobDescription}
+              currentCvText={editableCV || cvText}
               setJobDescription={setJobDescription}
               onKeywordClick={handleKeywordClick}
               setSelectedKeyword={setSelectedKeyword}
@@ -534,6 +643,8 @@ export default function Home() {
                     setCoverLetterFormat={setCoverLetterFormat}
                     coverLetterLang={coverLetterLang}
                     setCoverLetterLang={setCoverLetterLang}
+                    coverLetterTone={coverLetterTone}
+                    setCoverLetterTone={setCoverLetterTone}
                     loadingCoverLetter={loadingCoverLetter}
                     cvText={cvText}
                     jobDescription={jobDescription}
@@ -582,6 +693,12 @@ export default function Home() {
         )}
 
       </div>
+
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        showToast={showToast}
+      />
     </div>
   );
 }

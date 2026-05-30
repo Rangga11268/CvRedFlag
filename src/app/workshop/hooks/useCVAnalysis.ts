@@ -31,10 +31,23 @@ export function useCVAnalysis({
   const [scoreHistory, setScoreHistory] = useState<number[]>([]);
 
   const callAnalyzeAPI = async (payload: Record<string, unknown>): Promise<any> => {
+    let geminiKey = "";
+    let openrouterKey = "";
+    if (typeof window !== "undefined") {
+      geminiKey = localStorage.getItem("cv_redflag_gemini_api_key") || "";
+      openrouterKey = localStorage.getItem("cv_redflag_openrouter_api_key") || "";
+    }
+
+    const payloadWithKeys = {
+      ...payload,
+      ...(geminiKey ? { geminiApiKey: geminiKey } : {}),
+      ...(openrouterKey ? { openrouterApiKey: openrouterKey } : {}),
+    };
+
     const res = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payloadWithKeys),
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -282,8 +295,11 @@ export function useCVAnalysis({
     loading,
     loadingMsg,
     step1Result,
+    setStep1Result,
     step2Result,
+    setStep2Result,
     step3Result,
+    setStep3Result,
     currentStep,
     setCurrentStep,
     jobCategory,

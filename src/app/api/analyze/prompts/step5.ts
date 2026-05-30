@@ -10,6 +10,7 @@ export interface Step5Params {
   language?: "id" | "en";
   format?: "cover_letter" | "body_email_1" | "body_email_2";
   jobCategory?: "software_engineer" | "general";
+  tone?: "formal" | "confident" | "collaborative";
 }
 
 export interface Step5Result {
@@ -24,6 +25,7 @@ export function buildStep5Prompts(params: Step5Params): Step5Result {
     language = "id",
     format = "cover_letter",
     jobCategory = "general",
+    tone = "formal",
   } = params;
 
   const isIndo = language === "id";
@@ -36,7 +38,18 @@ export function buildStep5Prompts(params: Step5Params): Step5Result {
     ? currentDate.toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" })
     : currentDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-  const systemPrompt = `You are an elite executive career coach, ATS resume writer, and programmer recruiter. Write a highly professional and tailored ${isEmail ? "Body Email cover draft" : "1-page Cover Letter"} in ${isIndo ? "Bahasa Indonesia" : "English"} for a ${isSoftwareEngineer ? "Software Engineer / IT Professional" : "General Professional"}. Respond ONLY in Markdown.`;
+  let toneInstruction = "Highly formal, professional, respectful, and corporate grammar.";
+  if (tone === "confident") {
+    toneInstruction = "Assertive, bold, highlights achievements prominently, energetic and highly self-assured.";
+  } else if (tone === "collaborative") {
+    toneInstruction = "Warm, community/team-minded, enthusiastic, relationship-focused, emphasizing synergy and team growth.";
+  }
+
+  const systemPrompt = `You are an elite executive career coach, ATS resume writer, and recruiter. Write a highly professional and tailored ${isEmail ? "Body Email cover draft" : "1-page Cover Letter"} in ${isIndo ? "Bahasa Indonesia" : "English"} for a ${isSoftwareEngineer ? "Software Engineer / IT Professional" : "General Professional"}.
+  
+  CRITICAL TONE INSTRUCTION: You must write in a [${tone.toUpperCase()}] tone of voice. Use this style: ${toneInstruction}
+  
+  Respond ONLY in Markdown.`;
 
   let userPrompt: string;
 

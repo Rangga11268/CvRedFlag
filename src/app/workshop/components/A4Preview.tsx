@@ -119,6 +119,7 @@ const A4Preview: React.FC<A4PreviewProps> = ({
                       left: 0,
                       width: `${pageCount * 794}px`,
                       height: "1123px",
+                      boxSizing: "border-box",
                       fontFamily: selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif",
                       fontSize: forceSinglePage ? "9pt" : "10pt",
                       lineHeight: forceSinglePage ? 1.2 : (selectedTemplate === "compact" ? 1.25 : 1.4),

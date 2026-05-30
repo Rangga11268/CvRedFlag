@@ -21,6 +21,8 @@ interface CoverLetterPanelProps {
   setCoverLetterFormat: (format: "cover_letter" | "body_email_1" | "body_email_2") => void;
   coverLetterLang: "id" | "en";
   setCoverLetterLang: (lang: "id" | "en") => void;
+  coverLetterTone: "formal" | "confident" | "collaborative";
+  setCoverLetterTone: (tone: "formal" | "confident" | "collaborative") => void;
   loadingCoverLetter: boolean;
   cvText: string;
   jobDescription: string;
@@ -103,6 +105,8 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
   setCoverLetterFormat,
   coverLetterLang,
   setCoverLetterLang,
+  coverLetterTone,
+  setCoverLetterTone,
   loadingCoverLetter,
   cvText,
   jobDescription,
@@ -167,6 +171,20 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
             >
               <option value="id">Bahasa Indonesia</option>
               <option value="en">English</option>
+            </select>
+          </div>
+
+          {/* Tone Selection */}
+          <div className="flex flex-col gap-1 text-left">
+            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Gaya Bahasa (Tone)</label>
+            <select
+              value={coverLetterTone}
+              onChange={(e) => setCoverLetterTone(e.target.value as any)}
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold"
+            >
+              <option value="formal">Formal & Sopan (Formal)</option>
+              <option value="confident">Percaya Diri & Sukses (Confident)</option>
+              <option value="collaborative">Kerja Sama & Antusias (Collaborative)</option>
             </select>
           </div>
         </div>
@@ -323,25 +341,38 @@ const CoverLetterPanel: React.FC<CoverLetterPanelProps> = ({
             </button>
           </div>
 
-          <div className="w-full flex flex-col items-center gap-2 py-4 bg-slate-100 overflow-x-auto max-h-[650px] rounded-xl border">
+          <div className="w-full flex flex-col items-center gap-2 py-4 bg-slate-100 overflow-x-auto max-h-[650px] rounded-xl border relative">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">💡 Klik pada kertas di bawah untuk mengedit & memformat secara langsung</span>
-            <div
-              ref={editableRef}
-              contentEditable
-              suppressContentEditableWarning
-              onInput={(e) => {
-                setCoverLetter(e.currentTarget.innerHTML);
-              }}
-              className="bg-white shadow-md p-6 sm:p-8 text-slate-800 text-left w-full max-w-[794px] focus:outline-none border border-transparent focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 rounded-xs"
-              style={{
-                minHeight: coverLetterFormat.startsWith("body_email") ? "auto" : "1123px",
-                fontFamily: selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif",
-                fontSize: "10.5pt",
-                lineHeight: 1.6,
-                color: "#222",
-                whiteSpace: "pre-wrap",
-              }}
-            />
+            <div className="relative w-full max-w-[794px]">
+              <div
+                ref={editableRef}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={(e) => {
+                  setCoverLetter(e.currentTarget.innerHTML);
+                }}
+                className="bg-white shadow-md p-6 sm:p-8 text-slate-800 text-left w-full focus:outline-none border border-transparent focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 rounded-xs relative z-10"
+                style={{
+                  minHeight: coverLetterFormat.startsWith("body_email") ? "auto" : "1123px",
+                  fontFamily: selectedTemplate === "serif" ? "'Times New Roman','Garamond',serif" : selectedTemplate === "sans" ? "'Inter','Helvetica Neue',Helvetica,Arial,sans-serif" : "'Calibri',sans-serif",
+                  fontSize: "10.5pt",
+                  lineHeight: 1.6,
+                  color: "#222",
+                  whiteSpace: "pre-wrap",
+                }}
+              />
+              {/* Visual Page Break Guides (Dashed line overlay showing where PDF pages split) */}
+              {!coverLetterFormat.startsWith("body_email") && (
+                <>
+                  <div className="absolute left-0 right-0 border-t-2 border-dashed border-slate-350 pointer-events-none z-20" style={{ top: '1123px' }}>
+                    <span className="absolute right-4 -top-2.5 bg-slate-100 text-[8px] font-extrabold text-slate-500 px-2 py-0.5 rounded-md border border-slate-200 uppercase tracking-widest shadow-3xs" style={{ fontFamily: 'var(--font-jakarta)' }}>Batas Halaman 1 / 2 (PDF)</span>
+                  </div>
+                  <div className="absolute left-0 right-0 border-t-2 border-dashed border-slate-350 pointer-events-none z-20" style={{ top: '2246px' }}>
+                    <span className="absolute right-4 -top-2.5 bg-slate-100 text-[8px] font-extrabold text-slate-500 px-2 py-0.5 rounded-md border border-slate-200 uppercase tracking-widest shadow-3xs" style={{ fontFamily: 'var(--font-jakarta)' }}>Batas Halaman 2 / 3 (PDF)</span>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       ) : (
